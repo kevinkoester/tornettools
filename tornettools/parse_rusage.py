@@ -68,8 +68,10 @@ def __parse_shadow_rusage(args):
     if not os.path.exists(shadow_filepath):
         shadow_filepath += ".xz"
 
-    if not os.path.exists(shadow_filepath):
-        logging.warning(f"Unable to find cpu usage data at {shadow_filepath}")
+
+def __parse_shadow_rusage(args):
+    shadow_filepath = __get_file("shadow", "log")
+    if shadow_filepath is None:
         return False
 
     rusage = {}
