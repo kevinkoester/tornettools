@@ -7,6 +7,18 @@ from numpy import mean
 
 from tornettools.util import open_readable_file, load_json_data, dump_json_data
 
+def __get_file(name, extension = "json"):
+    json_path = f"{args.prefix}/{name}.{extension}"
+
+    if not os.path.exists(json_path):
+        json_path += ".xz"
+
+    if not os.path.exists(json_path):
+        logging.warning(f"Unable to find {extension} file at {json_path}.")
+        return None
+    return json_path
+
+
 def parse_resource_usage_logs(args):
     logging.info("Parsing resource usage from free log")
     if __parse_free_rusage(args):
@@ -16,12 +28,8 @@ def parse_resource_usage_logs(args):
         return False
 
 def __parse_free_rusage(args):
-    free_filepath = f"{args.prefix}/free.log"
-    if not os.path.exists(free_filepath):
-        free_filepath += ".xz"
-
-    if not os.path.exists(free_filepath):
-        logging.warning(f"Unable to find memory usage data at {free_filepath}")
+    free_filepath = __get_file("free", "log")
+    if free_filepath is None:
         return False
 
     rusage = {}
@@ -93,20 +101,12 @@ def __parse_shadow_rusage(args):
         logging.warning(f"Unable to parse resource usage data from {shadow_filepath}.")
         return False
 
-def __get_json_filename(name):
-    json_path = f"{args.prefix}/{name}.json"
-
-    if not os.path.exists(json_path):
-        json_path += ".xz"
-
-    if not os.path.exists(json_path):
-        logging.warning(f"Unable to find json file at {json_path}.")
-        return None
-    return json_path
-
 def extract_resource_usage_plot_data(args):
-    free_json_path = __get_json_filename("free_rusage")
-    shadow_json_path = __get_json_filename("shadow_rusage")
+    free_json_path = __get_file("free_rusage")
+    shadow_json_path = __get_file("shadow_rusage")
+
+    if free_json_path is None or shadow_json_path is None:
+        return False
 
     free_data = load_json_data(free_json_path)
     shadow_data = load_json_data(shadow_json_path)
