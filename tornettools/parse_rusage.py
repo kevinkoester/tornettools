@@ -93,24 +93,20 @@ def __parse_shadow_rusage(args):
         logging.warning(f"Unable to parse resource usage data from {shadow_filepath}.")
         return False
 
+def __get_json_filename(name):
+    json_path = f"{args.prefix}/{name}.json"
+
+    if not os.path.exists(json_path):
+        json_path += ".xz"
+
+    if not os.path.exists(json_path):
+        logging.warning(f"Unable to find json file at {json_path}.")
+        return None
+    return json_path
+
 def extract_resource_usage_plot_data(args):
-    free_json_path = f"{args.prefix}/free_rusage.json"
-
-    if not os.path.exists(free_json_path):
-        free_json_path += ".xz"
-
-    if not os.path.exists(free_json_path):
-        logging.warning(f"Unable to find memory resource usage data at {free_json_path}.")
-        return
-
-    shadow_json_path = f"{args.prefix}/shadow_rusage.json"
-
-    if not os.path.exists(shadow_json_path):
-        shadow_json_path += ".xz"
-
-    if not os.path.exists(shadow_json_path):
-        logging.warning(f"Unable to find memory resource usage data at {shadow_json_path}.")
-        return
+    free_json_path = __get_json_filename("free_rusage")
+    shadow_json_path = __get_json_filename("shadow_rusage")
 
     free_data = load_json_data(free_json_path)
     shadow_data = load_json_data(shadow_json_path)
