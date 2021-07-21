@@ -12,6 +12,10 @@ from tornettools.plot_common import *
 from tornettools.plot_tgen import plot_tgen
 from tornettools.plot_oniontrace import plot_oniontrace
 
+from collections import defaultdict
+import operator
+import copy
+
 def run(args):
     logging.info("Plotting simulation results now")
     set_plot_options()
@@ -38,6 +42,9 @@ def __plot_tornet(args):
     __plot_memory_usage(args, tornet_dbs)
     __plot_run_time(args, tornet_dbs)
 
+    logging.info("Loading tornet resource usage data per node")
+    tornet_dbs = __load_tornet_datasets(args, "resource_usage_node.json")
+    __plot_node_memory_usage(args, tornet_dbs)
     logging.info("Loading Tor metrics data")
     torperf_dbs = __load_torperf_datasets(args.tor_metrics_path)
 
@@ -75,6 +82,40 @@ def __plot_tornet(args):
     __plot_transfer_error_rates(args, torperf_dbs, tornet_dbs, "ALL")
 
     args.pdfpages.close()
+
+def __plot_node_memory_usage(args, tornet_dbs):
+    print("#################")
+    node_types = ["client", "guard", "exit", "middle", "4uthority"]
+    dbs_to_plot = {}
+    for t in node_types:
+        dbs_to_plot[t] = []
+    for tornet_db in tornet_dbs:
+        xy = {}
+        # [name][second] = [ram vals]
+        node_ram_sum = defaultdict(lambda: defaultdict(lambda: [0,0,0,0,0,0]))
+        for i, d in enumerate(tornet_db['dataset']):
+            for node_name, node_times in d["node_ram"].items():
+
+                for node_time, ram_vals in node_times.items():
+                    ram_vals = list(map(int, ram_vals))
+                    alloc_bytes = ram_vals[1]
+                    dealloc_bytes = ram_vals[2]
+                    for t in node_types:
+                        if t in node_name:
+                            node_ram_sum[t][node_time] = list(map(operator.add, node_ram_sum[t][node_time], ram_vals))
+        for t, val in node_ram_sum.items():
+            plot_data = {}
+            for time, ram_vals in val.items():
+                time = float(time)
+                total_bytes = ram_vals[3]
+                plot_data[time] = [total_bytes/1073742000.0]
+            db_copy = copy.deepcopy(tornet_db)
+            db_copy["data"] = plot_data
+            dbs_to_plot[t].append(db_copy)
+
+    for t in node_types:
+        __plot_timeseries_figure(args, dbs_to_plot[t], "ram_{}".format(t), xtime=True, xlabel="Simulated Time", ylabel="RAM Used (GiB) for {}".format(t))
+
 
 def __plot_memory_usage(args, tornet_dbs):
     for tornet_db in tornet_dbs:

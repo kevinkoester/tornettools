@@ -7,8 +7,10 @@ from numpy import mean
 
 from tornettools.util import open_readable_file, load_json_data, dump_json_data
 
-def __get_file(name, extension = "json"):
-    json_path = f"{args.prefix}/{name}.{extension}"
+from collections import defaultdict
+
+def __get_file(prefix, name, extension = "json"):
+    json_path = f"{prefix}/{name}.{extension}"
 
     if not os.path.exists(json_path):
         json_path += ".xz"
@@ -18,6 +20,8 @@ def __get_file(name, extension = "json"):
         return None
     return json_path
 
+def parse_resource_usage_node_logs(args):
+    return __parse_shadow_memory(args)
 
 def parse_resource_usage_logs(args):
     logging.info("Parsing resource usage from free log")
@@ -28,7 +32,7 @@ def parse_resource_usage_logs(args):
         return False
 
 def __parse_free_rusage(args):
-    free_filepath = __get_file("free", "log")
+    free_filepath = __get_file(args.prefix, "free", "log")
     if free_filepath is None:
         return False
 
@@ -63,14 +67,38 @@ def __parse_free_rusage(args):
         logging.warning(f"Unable to parse memory usage data from {free_filepath}.")
         return False
 
-def __parse_shadow_rusage(args):
-    shadow_filepath = f"{args.prefix}/shadow.log"
-    if not os.path.exists(shadow_filepath):
-        shadow_filepath += ".xz"
+def timestamp_to_seconds(stamp):
+    parts = stamp.split(":")
+    h, m, s = int(parts[0]), int(parts[1]), float(parts[2])
+    seconds = h*3600.0 + m*60.0 + s
+    return seconds
+
+def __parse_shadow_memory(args):
+    shadow_filepath = __get_file(args.prefix, "shadow", "log")
+    if shadow_filepath is None:
+        return False
+    # [node][time] = [alloc, dealloc, total]
+    memory_usage = defaultdict(dict)
+    memory_re = re.compile("\[_tracker_logRAM\]")
+    with open_readable_file(shadow_filepath) as inf:
+        for line in inf:
+            if memory_re.search(line) != None:
+                parts = line.strip().split()
+                node = parts[4][1:-1]
+                sim_time = timestamp_to_seconds(parts[2])
+                ram_parts = parts[9].split(",")
+                memory_usage[node][sim_time] = ram_parts
+    if len(memory_usage) > 0:
+        outpath = f"{args.prefix}/shadow_memory.json.xz"
+        dump_json_data(memory_usage, outpath, compress=True)
+        return True
+    else:
+        logging.warning(f"Unable to parse resource usage data from {shadow_filepath}.")
+        return False
 
 
 def __parse_shadow_rusage(args):
-    shadow_filepath = __get_file("shadow", "log")
+    shadow_filepath = __get_file(args.prefix, "shadow", "log")
     if shadow_filepath is None:
         return False
 
@@ -103,19 +131,21 @@ def __parse_shadow_rusage(args):
         logging.warning(f"Unable to parse resource usage data from {shadow_filepath}.")
         return False
 
-def extract_resource_usage_plot_data(args):
-    free_json_path = __get_file("free_rusage")
-    shadow_json_path = __get_file("shadow_rusage")
+def extract_resource_usage_node_plot_data(args):
+    shadow_memory_json_path = __get_file(args.prefix, "shadow_memory", "json")
+    shadow_memory_data = load_json_data(shadow_memory_json_path)
 
-    if free_json_path is None or shadow_json_path is None:
-        return False
+    outpath = f"{args.prefix}/tornet.plot.data/resource_usage_node.json"
+    rusage = {"node_ram": shadow_memory_data}
+    dump_json_data(rusage, outpath, compress=False)
+
+def extract_resource_usage_plot_data(args):
+    free_json_path = __get_file(args.prefix, "free_rusage", "json")
+    shadow_json_path = __get_file(args.prefix, "shadow_rusage", "json")
 
     free_data = load_json_data(free_json_path)
     shadow_data = load_json_data(shadow_json_path)
 
-    __extract_resource_usage(args, free_data, shadow_data)
-
-def __extract_resource_usage(args, free_data, shadow_data):
     rusage = {"ram": __get_ram_usage(free_data), "run_time": __get_run_time(shadow_data)}
     outpath = f"{args.prefix}/tornet.plot.data/resource_usage.json"
     dump_json_data(rusage, outpath, compress=False)
