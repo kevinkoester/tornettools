@@ -202,7 +202,11 @@ def __plot_transfer_time(args, torperf_dbs, tornet_dbs, bytes_key):
     for tornet_db in tornet_dbs:
         tornet_db['data'] = [tornet_db['dataset'][i][bytes_key] for i, _ in enumerate(tornet_db['dataset']) if bytes_key in tornet_db['dataset'][i]]
     for torperf_db in torperf_dbs:
-        torperf_db['data'] = [torperf_db['dataset']['download_times'][bytes_key]]
+        # Older datasets don't have download data
+        try:
+            torperf_db['data'] = [torperf_db['dataset']['download_times'][bytes_key]]
+        except:
+            pass
 
     dbs_to_plot = torperf_dbs + tornet_dbs
 
