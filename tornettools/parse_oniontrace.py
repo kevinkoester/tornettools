@@ -5,6 +5,8 @@ import subprocess
 
 from tornettools.util import which, cmdsplit, open_writeable_file, load_json_data, dump_json_data
 
+from collections import defaultdict
+
 def parse_oniontrace_logs(args):
     otracetools_exe = which('oniontracetools')
 
@@ -42,6 +44,7 @@ def extract_oniontrace_plot_data(args):
 
     __extract_circuit_build_times(args, data, startts, stopts)
     __extract_relay_tput(args, data, startts, stopts)
+    __extract_client_cicuit_list(args.prefix, data)
 
 def __extract_circuit_build_times(args, data, startts, stopts):
     cbt = __get_perfclient_cbt(data, startts, stopts)
@@ -52,6 +55,27 @@ def __extract_relay_tput(args, data, startts, stopts):
     tput = __get_relay_tput(data, startts, stopts)
     outpath = f"{args.prefix}/tornet.plot.data/relay_goodput.json"
     dump_json_data(tput, outpath, compress=False)
+
+def __extract_client_cicuit_list(prefix, data):
+    circ_num = __get_client_circuit_list(data)
+    outpath = f"{prefix}/tornet.plot.data/circuit_list.json"
+    dump_json_data(circ_num, outpath, compress=False)
+
+def __get_client_circuit_list(data):
+    node_types = ["markovclient", "perfclient"]
+    circuit_stats = {x : defaultdict(list) for x in node_types}
+    for node_name, node_data in data["data"].items():
+        circuit_events = node_data["oniontrace"]["circuit_events"]
+        for t in node_types:
+            if t in node_name:
+                for time in sorted(list(circuit_events["built"].keys()) + list(circuit_events["closed"].keys())):
+                    if time in circuit_events["built"]:
+                        for circ_id in circuit_events["built"][time]:
+                            circuit_stats[t][time].append(f"{node_name}_{circ_id}")
+                    if time in circuit_events["closed"]:
+                        for circ_id in circuit_events["closed"][time]:
+                            circuit_stats[t][time].append(f"-{node_name}_{circ_id}")
+    return circuit_stats
 
 def __get_perfclient_cbt(data, startts, stopts):
     perf_cbt = []
