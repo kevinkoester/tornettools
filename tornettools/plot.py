@@ -81,6 +81,11 @@ def __plot_tornet(args):
     logging.info("Plotting transfer error rates")
     __plot_transfer_error_rates(args, torperf_dbs, tornet_dbs, "ALL")
 
+    logging.info("Loading circuits info")
+    tornet_dbs = __load_tornet_datasets(args, "circuit_list.json")
+    logging.info("Plotting circuit num")
+    __plot_client_circuits(args, tornet_dbs)
+
     args.pdfpages.close()
 
 def __plot_node_memory_usage(args, tornet_dbs):
@@ -245,6 +250,32 @@ def __plot_client_goodput(args, torperf_dbs, tornet_dbs):
     __plot_cdf_figure(args, dbs_to_plot, 'client_goodput',
         yscale="taillog",
         xlabel="Client Transfer Goodput (Mbit/s): 0.5 to 1 MiB")
+
+def __plot_client_circuits(args, tornet_dbs):
+    for tornet_db in tornet_dbs:
+        for dataset in tornet_db["dataset"]:
+            circuit_num = {}
+            current_circuits = set()
+            for time, circ_list in dataset["markovclient"].items():
+                for circ in circ_list:
+                    if circ[0] == "-":
+                        try:
+                            current_circuits.remove(circ[1:])
+                        except:
+                            # Removing circuit before starting our data capture
+                            pass
+                    else:
+                        current_circuits.add(circ)
+                circuit_num[int(time)] = [len(current_circuits)]
+
+            tornet_db['data'] = circuit_num
+
+    dbs_to_plot = tornet_dbs
+
+    __plot_timeseries_figure(args, dbs_to_plot, "used_circuits",
+        ytime=False, xtime=True,
+        xlabel="Simulation Time",
+        ylabel="Active Circuits")
 
 def __plot_cdf_figure(args, dbs, filename, xscale=None, yscale=None, xlabel=None, ylabel="CDF"):
     color_cycle = cycle(DEFAULT_COLORS)
