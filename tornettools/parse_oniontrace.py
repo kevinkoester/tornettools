@@ -71,10 +71,10 @@ def __get_client_circuit_list(data):
                 for time in sorted(list(circuit_events["built"].keys()) + list(circuit_events["closed"].keys())):
                     if time in circuit_events["built"]:
                         for circ_id in circuit_events["built"][time]:
-                            circuit_stats[t-946684800][time].append("{}_{}".format(node_name.replace(t, ""), circ_id))
+                            circuit_stats[t][int(time)-946684800].append("{}_{}".format(node_name.replace(t, ""), circ_id))
                     if time in circuit_events["closed"]:
                         for circ_id in circuit_events["closed"][time]:
-                            circuit_stats[t-946684800][time].append("-{}_{}".format(node_name.replace(t, ""), circ_id))
+                            circuit_stats[t][int(time)-946684800].append("-{}_{}".format(node_name.replace(t, ""), circ_id))
     return circuit_stats
 
 def __get_perfclient_cbt(data, startts, stopts):
