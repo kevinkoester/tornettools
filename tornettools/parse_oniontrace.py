@@ -45,6 +45,8 @@ def extract_oniontrace_plot_data(args):
     __extract_circuit_build_times(args, data, startts, stopts)
     __extract_relay_tput(args, data, startts, stopts)
     __extract_client_cicuit_list(args.prefix, data)
+    __extract_circuit_dict(args.prefix, data)
+    __extract_circuit_bandwidth(args.prefix, data)
 
 def __extract_circuit_build_times(args, data, startts, stopts):
     cbt = __get_perfclient_cbt(data, startts, stopts)
@@ -60,6 +62,42 @@ def __extract_client_cicuit_list(prefix, data):
     circ_num = __get_client_circuit_list(data)
     outpath = f"{prefix}/tornet.plot.data/circuit_list.json"
     dump_json_data(circ_num, outpath, compress=False)
+
+def __extract_circuit_dict(prefix, data):
+    circ_dict = __get_circuit_relay_dict(data)
+    outpath = f"{prefix}/tornet.plot.data/circuit_dict.json"
+    dump_json_data(circ_dict, outpath, compress=False)
+
+def __extract_circuit_bandwidth(prefix, data):
+    circuit_bandwidth = __get_circuit_bandwidth(data)
+    outpath = f"{prefix}/tornet.plot.data/circuit_bandwidth.json"
+    dump_json_data(circuit_bandwidth, outpath, compress=False)
+
+def __get_circuit_bandwidth(data):
+    node_types = ["markovclient", "perfclient"]
+    circuit_dict = {x : defaultdict(lambda: defaultdict(lambda: defaultdict(int))) for x in node_types}
+    for node_name, node_data in data["data"].items():
+        for t in node_types:
+            if t in node_name:
+                for cid,circuit_data in node_data["oniontrace"]["circuit_bandwith"].items():
+                    for time, timed_data in circuit_data.items():
+                        # TODO: group similar times
+                        for val_name, val in timed_data.items():
+                            circuit_dict[t]["{}_{}".format(node_name.replace(t, ""), cid)][time][val_name] += int(val)
+    return circuit_dict
+
+
+def __get_circuit_relay_dict(data):
+    node_types = ["markovclient", "perfclient"]
+    circuit_dict = {x : defaultdict(list) for x in node_types}
+    for node_name, node_data in data["data"].items():
+        circuit_stats = {x : defaultdict(list) for x in node_types}
+        for t in node_types:
+            if t in node_name:
+                circuit_relay_dict = node_data["oniontrace"]["circuit_relay_dict"]
+                for cid, circuit_nodes in circuit_relay_dict.items():
+                    circuit_dict[t]["{}_{}".format(node_name.replace(t, ""), cid)] = circuit_nodes
+    return circuit_dict
 
 def __get_client_circuit_list(data):
     node_types = ["markovclient", "perfclient"]
