@@ -91,7 +91,7 @@ def __plot_tornet(args):
     circuit_dict_db = __load_tornet_datasets(args, "circuit_dict.json")
     circuit_bandwidth_db = __load_tornet_datasets(args, "circuit_bandwidth.json")
     logging.info("Simulating attacker")
-    __plot_attacker(args.tornet_collection_path, tornet_dbs, circuit_dict_db, circuit_bandwidth_db)
+    __plot_attacker(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db, circuit_bandwidth_db)
     args.pdfpages.close()
 
 def get_relay_capacities(shadow_config_path, bwup=False, bwdown=False):
@@ -144,8 +144,11 @@ def select_bad_nodes(node_bw_dict, fraction = .1, sort_func = lambda l: random.s
     return nodes
 
 
-def __plot_attacker(tornet_collection_path, circuit_list_db, circuit_dict_db, circuit_bandwidth_db):
-    return
+def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_db, circuit_bandwidth_db):
+    if len(set(map(len,[circuit_list_db, circuit_dict_db, circuit_bandwidth_db]))) != 1:
+        print("Databases have different lengths. Can't plot attacker!")
+        return
+
     shadow_config_path = "{}/shadow.config.xml".format(tornet_collection_path[0])
     relay_list = get_relay_capacities(shadow_config_path, bwup=True, bwdown=True)
     guard_list = {k:v for (k,v) in relay_list.items() if "guard" in k}
@@ -159,59 +162,91 @@ def __plot_attacker(tornet_collection_path, circuit_list_db, circuit_dict_db, ci
         bad_guards_dict["random"][i] = select_bad_nodes(guard_list, 1)
         bad_exits_dict["random"][i] = select_bad_nodes(exit_list, 1)
 
-    print(bad_guards_dict)
-
     # iterate through all circuits and count traffic through bad nodes
     # [run][num,written,read, connections]
     bad_stats = defaultdict(lambda: defaultdict(dict))
     bad_types = ["circuit", "guard", "exit"]
-    for bad_name in bad_guards_dict.keys():
-        for i in bad_guards_dict[bad_name].keys():
-            for t in bad_types:
-                bad_stats[t][bad_name][i] = [0,defaultdict(int),defaultdict(int), defaultdict(int)]
+    dbs_to_plot = {}
+    direction_types = ["write", "read", "count"]
+    for t in bad_types:
+        dbs_to_plot[t] = {}
+        for e in bad_guards_dict.keys():
+            dbs_to_plot[t][e] = {}
+            for d in direction_types:
+                dbs_to_plot[t][e][d] =[]
+    for experiment_id in range(0, len(circuit_list_db)):
+        for bad_name in bad_guards_dict.keys():
+            for i in bad_guards_dict[bad_name].keys():
+                for t in bad_types:
+                    bad_stats[t][bad_name][i] = [0,defaultdict(int),defaultdict(int), defaultdict(int)]
+                current_bad_list = bad_guards_dict[bad_name][i]
 
-            # [node] = list of cids
-            for node, val in circuit_list_db[0]["dataset"][0].items():
-                # [name] = list of cids
-                bad_cids = defaultdict(list)
-                # ignore internal circuits
-                if "markovclient" in node:
-                    for time, circuit_list in val.items():
-                        print(f"{time} : {circuit_list}")
-                        for circuit_id in circuit_list:
-                            print(circuit_id)
-                        print(circuit_bandwidth_db[0]["dataset"][0].keys())
-                        if "IS_INTERNAL" in l[1] or len(l[0]) != 3:
-                            # skip one hops etc
-                            continue
-                        node_names = [x.split("~")[1] for x in l[0]]
-                        # 0 is guard 2 is exit
-                        if node_names[0] in bad_guards_dict[bad_name][i] and node_names[2] in bad_exits_dict[bad_name][i]:
-                            bad_stats["circuit"][bad_name][i][0] +=1
-                            for t, throughput in circuit_transfer_data["circuit_delivered_read"][node][cid].items():
-                                bad_stats["circuit"][bad_name][i][1][t] += int(throughput)
-                            for t, throughput in circuit_transfer_data["circuit_delivered_written"][node][cid].items():
-                                bad_stats["circuit"][bad_name][i][2][t] += int(throughput)
+                # [node] = list of cids
+                for node, val in circuit_bandwidth_db[experiment_id]["dataset"][0].items():
+                    # [name] = list of cids
+                    bad_cids = defaultdict(list)
+                    # ignore internal circuits
+                    if "markovclient" in node:
+                        for circuit_id, circuit_dict in val.items():
+                            #print(f"{circuit_id} : list: {circuit_dict}\n")
+                            try:
+                                circuit_nodes = circuit_dict_db[0]["dataset"][0][node][circuit_id]
+                                if len(circuit_nodes) != 3:
+                                    # skip one hops etc
+                                    continue
+                            except:
+                                #print("Error locating {}".format(circuit_id))
+                                continue
 
-                        # bad exit
-                        if node_names[2] in bad_exits_dict[bad_name][i]:
-                            bad_stats["exit"][bad_name][i][0] +=1
-                            for t, throughput in circuit_transfer_data["circuit_delivered_read"][node][cid].items():
-                                bad_stats["exit"][bad_name][i][1][t] += int(throughput)
-                            for t, throughput in circuit_transfer_data["circuit_delivered_written"][node][cid].items():
-                                bad_stats["exit"][bad_name][i][2][t] += int(throughput)
-                        # bad guard
-                        if node_names[2] in bad_guards_dict[bad_name][i]:
-                            bad_stats["guard"][bad_name][i][0] +=1
-                            for t, throughput in circuit_transfer_data["circuit_delivered_read"][node][cid].items():
-                                bad_stats["guard"][bad_name][i][1][t] += int(throughput)
-                            for t, throughput in circuit_transfer_data["circuit_delivered_written"][node][cid].items():
-                                bad_stats["guard"][bad_name][i][2][t] += int(throughput)
+                            node_names = [x.split("~")[1] for x in circuit_nodes]
+                            bad_traffic_types = []
+                            if node_names[0] in bad_guards_dict[bad_name][i]:
+                                bad_traffic_types.append("guard")
+                            if node_names[2] in bad_guards_dict[bad_name][i]:
+                                bad_traffic_types.append("exit")
+                            if len(bad_traffic_types) == 2:
+                                bad_traffic_types.append("circuit")
+                            for t, types in circuit_bandwidth_db[0]["dataset"][0]["markovclient"][circuit_id].items():
+                                read_bytes = types["DELIVERED_READ"]
+                                written_bytes = types["DELIVERED_WRITTEN"]
+                                for bad_traffic_type in bad_traffic_types:
+                                    bad_stats[bad_traffic_type][bad_name][i][0] +=1
+                                    bad_stats[bad_traffic_type][bad_name][i][1][t] += read_bytes
+                                    bad_stats[bad_traffic_type][bad_name][i][2][t] += read_bytes
 
+        for bad_traffic_type, bad_traffic_selection_dict in bad_stats.items():
+            for bad_traffic_selection_name, bad_traffic_data in bad_traffic_selection_dict.items():
+                counts = []
+                written = []
+                read = []
+                bad_connections = []
+                avg_written = defaultdict(list)
+                avg_read = defaultdict(list)
+                avg_bad_connections = defaultdict(list)
+                for i, val in bad_traffic_data.items():
+                    counts.append(val[0])
+                    written.append(sum(map(int, val[1].values())))
+                    read.append(sum(map(int, val[2].values())))
+                    bad_connections.append(sum(val[3].values()))
+                    for t, throughput in val[1].items():
+                        avg_written[int(t)] = [sum([throughput] + avg_written[int(t)])]
+                    for t, throughput in val[2].items():
+                        avg_read[int(t)] = [sum([throughput] + avg_read[int(t)])]
+                    for t, bad in val[3].items():
+                        avg_bad_connections[int(t)] = [sum([bad] + avg_bad_connections[int(t)])]
+
+                db_copy = copy.deepcopy(circuit_bandwidth_db[experiment_id])
+                db_copy["data"] = avg_written
+                dbs_to_plot[bad_traffic_type][bad_traffic_selection_name]["write"].append(db_copy)
+                
+                db_copy = copy.deepcopy(circuit_bandwidth_db[experiment_id])
+                db_copy["data"] = avg_read
+                dbs_to_plot[bad_traffic_type][bad_traffic_selection_name]["read"].append(db_copy)
+    for t in bad_types:
+        for e in bad_guards_dict.keys():
+            for d in direction_types:
+                __plot_timeseries_figure(args, dbs_to_plot[t][e][d], "{} attacker selection for {} ({})".format(e, t, d), xtime=True, xlabel="Simulated Time", ylabel="Comprimised bytes ({} {} {})".format(e, d, t))
     print("Finished selecting bad nodes")
-
-
-
 
 def __plot_node_memory_usage(args, tornet_dbs):
     print("#################")
@@ -528,6 +563,7 @@ def __time_format_func(x, pos):
 def __load_tornet_datasets(args, filename):
     tornet_dbs = []
 
+    print("label")
     print(args.labels)
     label_cycle = cycle(args.labels) if args.labels != None else None
     color_cycle = cycle(args.colors) if args.colors != None else None
