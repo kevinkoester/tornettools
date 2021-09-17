@@ -83,7 +83,7 @@ def __get_circuit_bandwidth(data):
                     for time, timed_data in circuit_data.items():
                         # TODO: group similar times
                         for val_name, val in timed_data.items():
-                            circuit_dict[t]["{}_{}".format(node_name.replace(t, ""), cid)][time][val_name] += int(val)
+                            circuit_dict[t]["{}_{}".format(node_name.replace(t, ""), cid)][int(time)-946684800][val_name] += int(val)
     return circuit_dict
 
 
