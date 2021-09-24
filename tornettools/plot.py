@@ -159,8 +159,8 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
     bad_exits_dict = defaultdict(dict)
 
     for i in range(0, 10):
-        bad_guards_dict["random"][i] = select_bad_nodes(guard_list, 1)
-        bad_exits_dict["random"][i] = select_bad_nodes(exit_list, 1)
+        bad_guards_dict["random"][i] = select_bad_nodes(guard_list)
+        bad_exits_dict["random"][i] = select_bad_nodes(exit_list)
 
     # iterate through all circuits and count traffic through bad nodes
     # [run][num,written,read, connections]
@@ -194,26 +194,27 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                                 if len(circuit_nodes) != 3:
                                     # skip one hops etc
                                     continue
+                                node_names = [x.split("~")[1] for x in circuit_nodes]
+                                bad_traffic_types = []
+                                if node_names[0] in bad_guards_dict[bad_name][i]:
+                                    bad_traffic_types.append("guard")
+                                if node_names[2] in bad_guards_dict[bad_name][i]:
+                                    bad_traffic_types.append("exit")
+                                if len(bad_traffic_types) == 2:
+                                    bad_traffic_types.append("circuit")
+                                for t, types in circuit_bandwidth_db[0]["dataset"][0]["markovclient"][circuit_id].items():
+                                    read_bytes = types["DELIVERED_READ"]
+                                    written_bytes = types["DELIVERED_WRITTEN"]
+                                    for bad_traffic_type in bad_traffic_types:
+                                        bad_stats[bad_traffic_type][bad_name][i][0] +=1
+                                        bad_stats[bad_traffic_type][bad_name][i][1][t] += read_bytes
+                                        bad_stats[bad_traffic_type][bad_name][i][2][t] += read_bytes
                             except:
                                 #print("Error locating {}".format(circuit_id))
                                 continue
 
-                            node_names = [x.split("~")[1] for x in circuit_nodes]
-                            bad_traffic_types = []
-                            if node_names[0] in bad_guards_dict[bad_name][i]:
-                                bad_traffic_types.append("guard")
-                            if node_names[2] in bad_guards_dict[bad_name][i]:
-                                bad_traffic_types.append("exit")
-                            if len(bad_traffic_types) == 2:
-                                bad_traffic_types.append("circuit")
-                            for t, types in circuit_bandwidth_db[0]["dataset"][0]["markovclient"][circuit_id].items():
-                                read_bytes = types["DELIVERED_READ"]
-                                written_bytes = types["DELIVERED_WRITTEN"]
-                                for bad_traffic_type in bad_traffic_types:
-                                    bad_stats[bad_traffic_type][bad_name][i][0] +=1
-                                    bad_stats[bad_traffic_type][bad_name][i][1][t] += read_bytes
-                                    bad_stats[bad_traffic_type][bad_name][i][2][t] += read_bytes
 
+        logger.info("Finished collecting attacker bandwidth data. Plotting now...")
         for bad_traffic_type, bad_traffic_selection_dict in bad_stats.items():
             for bad_traffic_selection_name, bad_traffic_data in bad_traffic_selection_dict.items():
                 counts = []
