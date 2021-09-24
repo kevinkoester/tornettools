@@ -214,7 +214,7 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                                 continue
 
 
-        logger.info("Finished collecting attacker bandwidth data. Plotting now...")
+        logging.info("Finished collecting attacker bandwidth data. Plotting now...")
         for bad_traffic_type, bad_traffic_selection_dict in bad_stats.items():
             for bad_traffic_selection_name, bad_traffic_data in bad_traffic_selection_dict.items():
                 counts = []
