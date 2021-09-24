@@ -18,6 +18,9 @@ import copy
 import pathlib
 import random
 
+#for debug only
+from tornettools.debug import *
+
 def run(args):
     logging.info("Plotting simulation results now")
     set_plot_options()
@@ -88,9 +91,11 @@ def __plot_tornet(args):
     logging.info("Plotting circuit num")
     __plot_client_circuits(args, tornet_dbs)
 
+    print_current_memory("Before loading circuit data")
     circuit_dict_db = __load_tornet_datasets(args, "circuit_dict.json")
     circuit_bandwidth_db = __load_tornet_datasets(args, "circuit_bandwidth.json")
     logging.info("Simulating attacker")
+    print_current_memory("After loading circuit data")
     __plot_attacker(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db, circuit_bandwidth_db)
     args.pdfpages.close()
 
@@ -174,6 +179,7 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
             dbs_to_plot[t][e] = {}
             for d in direction_types:
                 dbs_to_plot[t][e][d] =[]
+    print_current_memory("Before main attacmer loop")
     for experiment_id in range(0, len(circuit_list_db)):
         for bad_name in bad_guards_dict.keys():
             for i in bad_guards_dict[bad_name].keys():
@@ -181,6 +187,7 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                     bad_stats[t][bad_name][i] = [0,defaultdict(int),defaultdict(int), defaultdict(int)]
                 current_bad_list = bad_guards_dict[bad_name][i]
 
+                print_current_memory("Before iterating through nodes")
                 # [node] = list of cids
                 for node, val in circuit_bandwidth_db[experiment_id]["dataset"][0].items():
                     # [name] = list of cids
@@ -209,11 +216,13 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                                         bad_stats[bad_traffic_type][bad_name][i][0] +=1
                                         bad_stats[bad_traffic_type][bad_name][i][1][t] += read_bytes
                                         bad_stats[bad_traffic_type][bad_name][i][2][t] += read_bytes
+                                print_current_memory()
                             except:
                                 #print("Error locating {}".format(circuit_id))
                                 continue
 
 
+        print_current_memory("After collecting data")
         logging.info("Finished collecting attacker bandwidth data. Plotting now...")
         for bad_traffic_type, bad_traffic_selection_dict in bad_stats.items():
             for bad_traffic_selection_name, bad_traffic_data in bad_traffic_selection_dict.items():
