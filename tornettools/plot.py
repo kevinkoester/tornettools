@@ -169,7 +169,7 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
 
     # iterate through all circuits and count traffic through bad nodes
     # [run][num,written,read, connections]
-    bad_stats = defaultdict(lambda: defaultdict(dict))
+    bad_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
     bad_types = ["circuit", "guard", "exit"]
     dbs_to_plot = {}
     direction_types = ["write", "read", "count"]
@@ -184,7 +184,7 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
         for bad_name in bad_guards_dict.keys():
             for i in bad_guards_dict[bad_name].keys():
                 for t in bad_types:
-                    bad_stats[t][bad_name][i] = [0,defaultdict(int),defaultdict(int), defaultdict(int)]
+                    bad_stats[experiment_id][t][bad_name][i] = [0,defaultdict(int),defaultdict(int), defaultdict(int)]
                 current_bad_list = bad_guards_dict[bad_name][i]
 
                 print_current_memory("Before iterating through nodes")
@@ -197,7 +197,7 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                         for circuit_id, circuit_dict in val.items():
                             #print(f"{circuit_id} : list: {circuit_dict}\n")
                             try:
-                                circuit_nodes = circuit_dict_db[0]["dataset"][0][node][circuit_id]
+                                circuit_nodes = circuit_dict_db[experiment_id]["dataset"][0][node][circuit_id]
                                 if len(circuit_nodes) != 3:
                                     # skip one hops etc
                                     continue
@@ -213,50 +213,53 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                                     read_bytes = types["DELIVERED_READ"]
                                     written_bytes = types["DELIVERED_WRITTEN"]
                                     for bad_traffic_type in bad_traffic_types:
-                                        bad_stats[bad_traffic_type][bad_name][i][0] +=1
-                                        bad_stats[bad_traffic_type][bad_name][i][1][t] += read_bytes
-                                        bad_stats[bad_traffic_type][bad_name][i][2][t] += read_bytes
+                                        bad_stats[experiment_id][bad_traffic_type][bad_name][i][0] +=1
+                                        bad_stats[experiment_id][bad_traffic_type][bad_name][i][1][t] += written_bytes
+                                        bad_stats[experiment_id][bad_traffic_type][bad_name][i][2][t] += read_bytes
                             except:
                                 #print("Error locating {}".format(circuit_id))
+                                #print(traceback.format_exc())
+                                #print(circuit_dict_db[experiment_id]["dataset"][0][node].keys())
                                 continue
 
 
         print_current_memory("After collecting data")
         logging.info("Finished collecting attacker bandwidth data. Plotting now...")
-    for t in bad_types:
-        for e in bad_guards_dict.keys():
-            bad_traffic_type = t
-            bad_traffic_selection_name = e
-            print_current_memory("Plot {} {}".format(bad_traffic_type, bad_traffic_selection_name))
-            counts = []
-            written = []
-            read = []
-            bad_connections = []
-            avg_written = defaultdict(list)
-            avg_read = defaultdict(list)
-            avg_bad_connections = defaultdict(list)
-            for i, val in bad_stats[t][e].items():
-                counts.append(val[0])
-                written.append(sum(map(int, val[1].values())))
-                read.append(sum(map(int, val[2].values())))
-                bad_connections.append(sum(val[3].values()))
-                for t, throughput in val[1].items():
-                    avg_written[int(t)] = [sum([throughput] + avg_written[int(t)])]
-                for t, throughput in val[2].items():
-                    avg_read[int(t)] = [sum([throughput] + avg_read[int(t)])]
-                for t, bad in val[3].items():
-                    avg_bad_connections[int(t)] = [sum([bad] + avg_bad_connections[int(t)])]
+    for experiment_id in range(0, len(circuit_list_db)):
+        for bad_traffic_type in bad_types:
+            for bad_traffic_selection_name in bad_guards_dict.keys():
+                print_current_memory("Plot {} {}".format(bad_traffic_type, bad_traffic_selection_name))
+                counts = []
+                written = []
+                read = []
+                bad_connections = []
+                avg_written = defaultdict(list)
+                avg_read = defaultdict(list)
+                avg_bad_connections = defaultdict(list)
+                for e, val in bad_stats[experiment_id][bad_traffic_type][bad_traffic_selection_name].items():
+                    counts.append(val[0])
+                    written.append(sum(map(int, val[1].values())))
+                    read.append(sum(map(int, val[2].values())))
+                    bad_connections.append(sum(val[3].values()))
+                    for t, throughput in val[1].items():
+                        avg_written[int(t)] = [sum([throughput] + avg_written[int(t)])]
+                    for t, throughput in val[2].items():
+                        avg_read[int(t)] = [sum([throughput] + avg_read[int(t)])]
+                    for t, bad in val[3].items():
+                        avg_bad_connections[int(t)] = [sum([bad] + avg_bad_connections[int(t)])]
 
-            db_copy = copy.deepcopy(circuit_bandwidth_db[experiment_id])
-            db_copy["data"] = avg_written
-            dbs_to_plot[bad_traffic_type][bad_traffic_selection_name]["write"].append(db_copy)
-            db_copy = copy.deepcopy(circuit_bandwidth_db[experiment_id])
-            db_copy["data"] = avg_read
-            dbs_to_plot[bad_traffic_type][bad_traffic_selection_name]["read"].append(db_copy)
+                db_copy = copy.deepcopy(circuit_bandwidth_db[experiment_id])
+                db_copy["data"] = avg_written
+                #print("Added written with len {}. Len of bad_stats {}".format(len(avg_written.keys()), bad_stats[experiment_id][bad_traffic_type][bad_traffic_selection_name].keys()))
+                #print("bad_stats[{}] t {} e {} keys: {}".format(experiment_id, t, e, bad_stats[experiment_id].keys()))
+                dbs_to_plot[bad_traffic_type][bad_traffic_selection_name]["write"].append(db_copy)
+                db_copy = copy.deepcopy(circuit_bandwidth_db[experiment_id])
+                db_copy["data"] = avg_read
+                dbs_to_plot[bad_traffic_type][bad_traffic_selection_name]["read"].append(db_copy)
 
-            for d in direction_types:
-                print("e {} d {} t {}".format(e, d, t))
-                __plot_timeseries_figure(args, dbs_to_plot[t][e][d], "{} attacker selection for {} ({})".format(e, t, d), xtime=True, xlabel="Simulated Time", ylabel="Comprimised bytes ({} {} {})".format(e, d, t))
+                for d in direction_types:
+                    print("e {} d {} t {}".format(bad_traffic_selection_name, d, bad_traffic_type))
+                    __plot_timeseries_figure(args, dbs_to_plot[bad_traffic_type][bad_traffic_selection_name][d], "{} attacker selection for {} ({})".format(bad_traffic_selection_name, bad_traffic_type, d), xtime=True, xlabel="Simulated Time", ylabel="Comprimised bytes ({} {} {})".format(bad_traffic_selection_name, d, bad_traffic_type))
     print("Finished selecting bad nodes")
 
 def __plot_node_memory_usage(args, tornet_dbs):
