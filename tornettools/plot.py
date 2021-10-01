@@ -50,8 +50,13 @@ def __plot_tornet(args):
     logging.info("Loading tornet resource usage data per node")
     tornet_dbs = __load_tornet_datasets(args, "resource_usage_node.json")
     __plot_node_memory_usage(args, tornet_dbs)
+    logging.info("Loading tornet cpu usage data per node")
+    tornet_dbs = __load_tornet_datasets(args, "cpu_node.json")
+    __plot_node_cpu_usage(args, tornet_dbs)
+
     logging.info("Loading Tor metrics data")
     torperf_dbs = __load_torperf_datasets(args.tor_metrics_path)
+
 
     logging.info("Loading tornet relay goodput data")
     tornet_dbs = __load_tornet_datasets(args, "relay_goodput.json")
@@ -292,6 +297,33 @@ def __plot_node_memory_usage(args, tornet_dbs):
     for t in node_types:
         __plot_timeseries_figure(args, dbs_to_plot[t], "ram_{}".format(t), xtime=True, xlabel="Simulated Time", ylabel="RAM Used (GiB) for {}".format(t))
 
+def __plot_node_cpu_usage(args, tornet_dbs):
+    node_types = ["client", "guard", "exit", "middle", "4uthority"]
+    dbs_to_plot = {}
+    for t in node_types:
+        dbs_to_plot[t] = []
+    for tornet_db in tornet_dbs:
+        xy = {}
+        # [name][second] = cpu time
+        node_cpu = defaultdict(lambda: defaultdict(int))
+        for i, d in enumerate(tornet_db['dataset']):
+            for node_name, node_times in d["node_cpu"].items():
+
+                for node_time, cpu_val in node_times.items():
+                    for t in node_types:
+                        if t in node_name:
+                            node_cpu[t][node_time] = int(cpu_val)
+        for t, val in node_cpu.items():
+            plot_data = {}
+            for time, cpu_vals in val.items():
+                time = float(time)
+                plot_data[time] = [cpu_vals]
+            db_copy = copy.deepcopy(tornet_db)
+            db_copy["data"] = plot_data
+            dbs_to_plot[t].append(db_copy)
+
+    for t in node_types:
+        __plot_timeseries_figure(args, dbs_to_plot[t], "cpu_{}".format(t), xtime=True, xlabel="Simulated Time", ylabel="CPU Time (TODO) for {}".format(t))
 
 def __plot_memory_usage(args, tornet_dbs):
     for tornet_db in tornet_dbs:

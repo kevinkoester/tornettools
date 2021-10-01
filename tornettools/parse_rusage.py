@@ -20,6 +20,9 @@ def __get_file(prefix, name, extension = "json"):
         return None
     return json_path
 
+def parse_cpu_node_logs(args):
+    return __parse_shadow_cpu(args.prefix)
+
 def parse_resource_usage_node_logs(args):
     return __parse_shadow_memory(args)
 
@@ -96,6 +99,36 @@ def __parse_shadow_memory(args):
         logging.warning(f"Unable to parse resource usage data from {shadow_filepath}.")
         return False
 
+def __parse_shadow_cpu(prefix):
+    shadow_filepath = __get_file(prefix, "shadow", "log")
+    if shadow_filepath is None:
+        return False
+
+    heartbeat = re.compile("\[shadow-heartbeat\] \[node\]")
+    cpu_usage = defaultdict(lambda: defaultdict(int))
+    with open_readable_file(shadow_filepath) as inf:
+        for line in inf:
+            if heartbeat.search(line) != None:
+                parts = line.strip().split()
+                if len(parts) >= 9:
+                    sim_time = timestamp_to_seconds(parts[2])
+                    node = parts[4]
+                    payload = parts[9]
+                    payload_parts = payload.split(";")
+                    first_part_parts = payload_parts[0].split(",")
+                    total_cpu = first_part_parts[6]
+                    interval_cpu = first_part_parts[7]
+                    cpu_usage[node][sim_time] = total_cpu
+
+    if len(cpu_usage) > 0:
+        outpath = f"{prefix}/shadow_cpu.json.xz"
+        dump_json_data(cpu_usage, outpath, compress=True)
+        return True
+    else:
+        logging.warning(f"Unable to parse cpu usage data from {shadow_filepath}.")
+        return False
+
+
 
 def __parse_shadow_rusage(args):
     shadow_filepath = __get_file(args.prefix, "shadow", "log")
@@ -131,6 +164,14 @@ def __parse_shadow_rusage(args):
         logging.warning(f"Unable to parse resource usage data from {shadow_filepath}.")
         return False
 
+def extract_cpu_node_plot_data(args):
+    shadow_cpu_json_path = __get_file(args.prefix, "shadow_cpu", "json")
+    shadow_cpu_data = load_json_data(shadow_cpu_json_path)
+
+    outpath = f"{args.prefix}/tornet.plot.data/cpu_node.json"
+    rusage = {"node_cpu": shadow_cpu_data}
+    dump_json_data(rusage, outpath, compress=False)
+
 def extract_resource_usage_node_plot_data(args):
     shadow_memory_json_path = __get_file(args.prefix, "shadow_memory", "json")
     shadow_memory_data = load_json_data(shadow_memory_json_path)
@@ -138,6 +179,7 @@ def extract_resource_usage_node_plot_data(args):
     outpath = f"{args.prefix}/tornet.plot.data/resource_usage_node.json"
     rusage = {"node_ram": shadow_memory_data}
     dump_json_data(rusage, outpath, compress=False)
+
 
 def extract_resource_usage_plot_data(args):
     free_json_path = __get_file(args.prefix, "free_rusage", "json")
