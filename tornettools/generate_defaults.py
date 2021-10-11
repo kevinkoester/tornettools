@@ -1,3 +1,5 @@
+import os
+
 # a relay must have been running longer than this to be considered
 RUN_FREQ_THRESH=0.01
 
@@ -7,7 +9,11 @@ SIMULATION_LENGTH_SECONDS=3600
 SHADOW_DATA_PATH="shadow.data"
 SHADOW_TEMPLATE_PATH="{}.template".format(SHADOW_DATA_PATH)
 CONFIG_DIRPATH="conf"
-SHADOW_INSTALL_PREFIX="~/.shadow"
+SHADOW_INSTALL_PREFIX = os.getenv("SHADOW_INSTALL_PREFIX") 
+
+if SHADOW_INSTALL_PREFIX is None:
+    SHADOW_INSTALL_PREFIX="~/.shadow"
+
 SHADOW_HOSTS_PATH="hosts"
 SHADOW_CONFIG_FILENAME="shadow.config.xml"
 
