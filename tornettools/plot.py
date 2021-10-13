@@ -21,6 +21,9 @@ import random
 #for debug only
 from tornettools.debug import *
 
+
+SIMTIME_ONE_SECOND = 1000000000.0
+
 def run(args):
     logging.info("Plotting simulation results now")
     set_plot_options()
@@ -316,7 +319,7 @@ def __plot_node_cpu_usage(args, tornet_dbs):
         for t, val in node_cpu.items():
             plot_data = {}
             for time, cpu_vals in val.items():
-                time = float(time)
+                time = float(time) / SIMTIME_ONE_SECOND
                 plot_data[time] = [cpu_vals]
             db_copy = copy.deepcopy(tornet_db)
             db_copy["data"] = plot_data
