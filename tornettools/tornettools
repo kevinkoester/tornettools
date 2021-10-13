@@ -332,6 +332,11 @@ def main():
         metavar="PATH", type=__type_str_file_path_in,
         action="store", dest="torgencertexe",
         default=which("tor-gencert"))
+    generate_parser.add_argument('--shadow-prefix',
+        help="""Path to the shadow installation path""",
+        metavar="PATH", type=__type_str_dir_path_in,
+        action="store", dest="shadow_prefix",
+        default="~/.shadow")
 
     ############
     # simulate #
