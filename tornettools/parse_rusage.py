@@ -44,23 +44,27 @@ def __parse_free_rusage(args):
     last_ts = None
     mem_header = None
     with open_readable_file(free_filepath) as inf:
-        for line in inf:
-            if "UTC" in line:
-                parts = line.strip().split()
-                if len(parts) >= 1:
-                    ts = float(parts[0])
-                    #dt = datetime.datetime.fromtimestamp(ts)
-                    #last_ts = dt.timestamp()
-                    last_ts = ts
-            elif 'total' in line and mem_header == None:
-                mem_header = [p.strip() for p in line.strip().split()]
-            elif "Mem:" in line:
-                parts = [p.strip() for p in line.strip().split()]
-                mem_counts = [int(p) for p in parts[1:]]
+        try:
+            for line in inf:
+                if "UTC" in line:
+                    parts = line.strip().split()
+                    if len(parts) >= 1:
+                        ts = float(parts[0])
+                        #dt = datetime.datetime.fromtimestamp(ts)
+                        #last_ts = dt.timestamp()
+                        last_ts = ts
+                elif 'total' in line and mem_header == None:
+                    mem_header = [p.strip() for p in line.strip().split()]
+                elif "Mem:" in line:
+                    parts = [p.strip() for p in line.strip().split()]
+                    mem_counts = [int(p) for p in parts[1:]]
 
-                memd = {f"mem_{mem_header[i]}": mem_counts[i] for i in range(len(mem_counts))}
+                    memd = {f"mem_{mem_header[i]}": mem_counts[i] for i in range(len(mem_counts))}
 
-                rusage.setdefault(last_ts, memd)
+                    if last_ts > 0:
+                        rusage.setdefault(last_ts, memd)
+        except:
+            last_ts = -1
 
     if len(rusage) > 0:
         outpath = f"{args.prefix}/free_rusage.json.xz"
