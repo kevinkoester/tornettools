@@ -319,7 +319,7 @@ def __plot_node_cpu_usage(args, tornet_dbs):
         for t, val in node_cpu.items():
             plot_data = {}
             for time, cpu_vals in val.items():
-                time = float(time) / SIMTIME_ONE_SECOND
+                time = float(time)
                 plot_data[time] = [cpu_vals]
             db_copy = copy.deepcopy(tornet_db)
             db_copy["data"] = plot_data
