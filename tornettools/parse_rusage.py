@@ -120,9 +120,10 @@ def __parse_shadow_cpu(prefix):
                     payload = parts[9]
                     payload_parts = payload.split(";")
                     first_part_parts = payload_parts[0].split(",")
-                    total_cpu = first_part_parts[6]
-                    interval_cpu = first_part_parts[7]
-                    cpu_usage[node][sim_time] = total_cpu
+                    if len(first_part_parts) >= 8:
+                        total_cpu = first_part_parts[6]
+                        interval_cpu = first_part_parts[7]
+                        cpu_usage[node][sim_time] = total_cpu
 
     if len(cpu_usage) > 0:
         outpath = f"{prefix}/shadow_cpu.json.xz"
