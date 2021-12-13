@@ -79,7 +79,7 @@ def __get_circuit_bandwidth(data):
     for node_name, node_data in data["data"].items():
         for t in node_types:
             if t in node_name:
-                for cid,circuit_data in node_data["oniontrace"]["circuit_bandwith"].items():
+                for cid,circuit_data in node_data["oniontrace"]["circuit_bandwidth"].items():
                     for time, timed_data in circuit_data.items():
                         # TODO: group similar times
                         for val_name, val in timed_data.items():
