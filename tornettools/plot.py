@@ -382,6 +382,20 @@ def __plot_relay_goodput(args, torperf_dbs, tornet_dbs, net_scale):
     __plot_cdf_figure(args, dbs_to_plot, 'relay_goodput',
         xlabel="Sum of Relays' Goodput (Gbit/s)")
 
+    for tornet_db in tornet_dbs:
+        xy = {}
+        for i, d in enumerate(tornet_db['dataset']):
+            for key, val in d.items():
+                l = val * 1e-6 # bytes to gbits
+                xy.setdefault(int(key), []).append(l)
+        tornet_db['data'] = xy
+
+    dbs_to_plot = tornet_dbs
+    __plot_timeseries_figure(args, dbs_to_plot, "relay_goodput",
+        ytime=False, xtime=True,
+        xlabel="Simulation Time",
+        ylabel="Throughput (MiB/s)")
+
 def __plot_circuit_build_time(args, torperf_dbs, tornet_dbs):
     # cache the corresponding data in the 'data' keyword for __plot_cdf_figure
     for tornet_db in tornet_dbs:
