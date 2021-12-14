@@ -18,6 +18,10 @@ import copy
 import pathlib
 import random
 
+from scipy.stats import entropy
+import numpy as np
+import math
+
 #for debug only
 from tornettools.debug import *
 
@@ -105,6 +109,7 @@ def __plot_tornet(args):
     logging.info("Simulating attacker")
     print_current_memory("After loading circuit data")
     __plot_attacker(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db, circuit_bandwidth_db)
+    __plot_entropy(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db)
     args.pdfpages.close()
 
 def get_relay_capacities(shadow_config_path, bwup=False, bwdown=False):
@@ -155,6 +160,56 @@ def select_bad_nodes(node_bw_dict, fraction = .1, sort_func = lambda l: random.s
             nodes.append(node)
 
     return nodes
+
+def __plot_entropy(args, tornet_collection_path, circuit_list, circuit_list_db):
+    shadow_config_path = "{}/shadow.config.xml".format(tornet_collection_path[0])
+    relay_list = get_relay_capacities(shadow_config_path, bwup=True, bwdown=True)
+    guard_list = {k:v for (k,v) in relay_list.items() if "guard" in k}
+    exit_list = {k:v for (k,v) in relay_list.items() if "exit" in k}
+    all_combinations = []
+    for guard_relay in guard_list:
+        for exit_relay in exit_list:
+            if exit_relay != guard_relay:
+                all_combinations.append([guard_relay, exit_relay])
+    for experiment_id in range(0, len(circuit_list_db)):
+        circuit_list_db[experiment_id]["data"] = []
+        circuit_dict = defaultdict(list)
+        norm_entropy = defaultdict(float)
+        for time, circ_change_list in circuit_list[experiment_id]["dataset"][0]["markovclient"].items():
+            for circ_change in circ_change_list:
+                is_remove = False
+                if circ_change[0] == "-":
+                    is_remove = True
+                    circ_change = circ_change[1:]
+                client_id, circuit_id = circ_change.split("_")
+                #print("[{}] {}: {}. {}".format(time, client_id, circuit_id, is_remove))
+                #print(circuit_list_db[experiment_id]["dataset"][0]["markovclient"].keys())
+                if not is_remove:
+                    circuit_dict[time].append(circ_change)
+                else:
+                    if circuit_id in circuit_dict[time]:
+                        circuit_dict[time].remove(circ_change)
+
+            used_circuits = []
+            # calculate entropy over circuit_dict
+            for open_circ in circuit_dict[time]:
+                used_relays = circuit_list_db[experiment_id]["dataset"][0]["markovclient"][open_circ]
+                if len(used_relays) == 3:
+                    if "guard" in used_relays[0] and "exit" in used_relays[2]:
+                        used_circuits.append([used_relays[0], used_relays[2]])
+            _, counts = np.unique(used_circuits, return_counts=True, axis=0)
+            prob_list = np.divide(counts, len(used_circuits))
+            normalized_entropy = entropy(prob_list, base=2)/math.log(len(all_combinations), 2)
+            if normalized_entropy > 1:
+                print("##### Entropy over 1")
+                print(f"{len(all_combinations)=} {entropy(prob_list)=} {sum(prob_list)=} {prob_list=} {counts=} {len(used_circuits)=} {all_combinations=} {used_circuits=}")
+            norm_entropy[int(time)] = [normalized_entropy]
+        circuit_list_db[experiment_id]["data"].append(list(norm_entropy.values()))
+        circuit_list[experiment_id]["data"] = norm_entropy
+    __plot_timeseries_figure(args, circuit_list, "Entropy", xtime=True, xlabel="Simulated Time", ylabel="Normalized Entropy")
+    __plot_cdf_figure(args, circuit_list_db, 'entropy_cdf', xlabel="Entropy")
+
+
 
 
 def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_db, circuit_bandwidth_db):
