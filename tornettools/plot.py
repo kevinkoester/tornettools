@@ -108,7 +108,8 @@ def __plot_tornet(args):
     circuit_bandwidth_db = __load_tornet_datasets(args, "circuit_bandwidth.json")
     logging.info("Simulating attacker")
     print_current_memory("After loading circuit data")
-    __plot_attacker(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db, circuit_bandwidth_db)
+    # Disable for now as it takes a very long time and yields no results
+    #__plot_attacker(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db, circuit_bandwidth_db)
     __plot_entropy(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db)
     args.pdfpages.close()
 
