@@ -534,11 +534,13 @@ def __plot_client_goodput(args, torperf_dbs, tornet_dbs):
         xlabel="Client Transfer Goodput (Mbit/s): 0.5 to 1 MiB")
 
 def __plot_client_circuits(args, tornet_dbs):
+    total_circuit_dbs = []
     for tornet_db in tornet_dbs:
         for dataset in tornet_db["dataset"]:
             circuit_num = {}
+            total_circuit_num = {}
             current_circuits = set()
-            for time, circ_list in dataset["markovclient"].items():
+            for time, circ_list in sorted(dataset["markovclient"].items()):
                 for circ in circ_list:
                     if circ[0] == "-":
                         try:
@@ -548,16 +550,25 @@ def __plot_client_circuits(args, tornet_dbs):
                             pass
                     else:
                         current_circuits.add(circ)
-                circuit_num[int(time)] = [len(current_circuits)]
+                circuit_num[int(time)] = [len(current_circuits)/1000.0]
+                total_circuit_num[int(time)] += [len(current_circuits)/1000.0]
 
+            db_copy = copy.deepcopy(tornet_db)
             tornet_db['data'] = circuit_num
+            db_copy["data"] = total_circuit_num
+            total_circuit_dbs.append(db_copy)
 
     dbs_to_plot = tornet_dbs
 
     __plot_timeseries_figure(args, dbs_to_plot, "used_circuits",
         ytime=False, xtime=True,
         xlabel="Simulation Time",
-        ylabel="Active Circuits")
+        ylabel="Active Circuits (thousand)")
+
+    __plot_timeseries_figure(args, total_circuit_dbs, "total_circuits",
+        ytime=False, xtime=True,
+        xlabel="Simulation Time",
+        ylabel="Total Circuits (thousand)")
 
 def __plot_cdf_figure(args, dbs, filename, xscale=None, yscale=None, xlabel=None, ylabel="CDF"):
     color_cycle = cycle(DEFAULT_COLORS)
