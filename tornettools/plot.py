@@ -104,13 +104,14 @@ def __plot_tornet(args):
     __plot_client_circuits(args, tornet_dbs)
 
     print_current_memory("Before loading circuit data")
-    circuit_dict_db = __load_tornet_datasets(args, "circuit_dict.json")
+    #circuit_dict_db = __load_tornet_datasets(args, "circuit_dict.json")
     circuit_bandwidth_db = __load_tornet_datasets(args, "circuit_bandwidth.json")
     logging.info("Simulating attacker")
     print_current_memory("After loading circuit data")
     # Disable for now as it takes a very long time and yields no results
     #__plot_attacker(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db, circuit_bandwidth_db)
-    __plot_entropy(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db)
+    #__plot_entropy(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db)
+    __plot_circuit_bandwidth(args, circuit_bandwidth_db)
     args.pdfpages.close()
 
 def get_relay_capacities(shadow_config_path, bwup=False, bwdown=False):
@@ -215,6 +216,23 @@ def __plot_entropy(args, tornet_collection_path, circuit_list, circuit_list_db):
         circuit_list[experiment_id]["data"] = norm_entropy
     __plot_timeseries_figure(args, circuit_list, "Entropy", xtime=True, xlabel="Simulated Time", ylabel="Normalized Entropy")
     __plot_cdf_figure(args, circuit_list_db, 'entropy_cdf', xlabel="Entropy")
+
+
+def __plot_circuit_bandwidth(args, circuit_bandwidth_db):
+    dbs_to_plot = []
+    for experiment_id in range(0, len(circuit_bandwidth_db)):
+        for dataset in circuit_bandwidth_db[experiment_id]["dataset"]:
+            circuit_bw_list = []
+            for node, val in dataset.items():
+                for circ_id, bw_time_dict in val.items():
+                    circuit_bw = 0
+                    for time, bw_dict in bw_time_dict.items():
+                        circuit_bw += bw_dict["WRITTEN"]
+                        circuit_bw += bw_dict["READ"]
+                    circuit_bw_list.append(circuit_bw/float(1e6))
+        circuit_bandwidth_db[experiment_id]["data"] = [circuit_bw_list]
+        dbs_to_plot.append(circuit_bandwidth_db[experiment_id])
+    __plot_cdf_figure(args, dbs_to_plot, "bytes_per_circuit", xlabel="Megabyte per circuit")
 
 
 
@@ -533,30 +551,47 @@ def __plot_client_goodput(args, torperf_dbs, tornet_dbs):
         yscale="taillog",
         xlabel="Client Transfer Goodput (Mbit/s): 0.5 to 1 MiB")
 
+
 def __plot_client_circuits(args, tornet_dbs):
     total_circuit_dbs = []
+    circuit_time_dbs = []
     for tornet_db in tornet_dbs:
         for dataset in tornet_db["dataset"]:
             circuit_num = {}
-            total_circuit_num = {}
+            total_circuit_num_dict = {}
+            total_circuit_num = 0
             current_circuits = set()
-            for time, circ_list in sorted(dataset["markovclient"].items()):
+            # for plotting circuit time cdf
+            circuit_time_dict = {}
+            circuit_time_list = []
+            for time, circ_list in dataset["markovclient"].items():
                 for circ in circ_list:
                     if circ[0] == "-":
                         try:
                             current_circuits.remove(circ[1:])
-                        except:
+                            circuit_time_list.append(float(time) - circuit_time_dict[circ[1:]])
+                        except KeyError:
                             # Removing circuit before starting our data capture
                             pass
                     else:
-                        current_circuits.add(circ)
+                        if circ not in current_circuits:
+                            total_circuit_num += 1
+                            current_circuits.add(circ)
+                            circuit_time_dict[circ] = float(time)
+
                 circuit_num[int(time)] = [len(current_circuits)/1000.0]
-                total_circuit_num[int(time)] += [len(current_circuits)/1000.0]
+                total_circuit_num_dict[int(time)] = [total_circuit_num / float(1e6)]
 
             db_copy = copy.deepcopy(tornet_db)
-            tornet_db['data'] = circuit_num
-            db_copy["data"] = total_circuit_num
+            db_copy["data"] = total_circuit_num_dict
             total_circuit_dbs.append(db_copy)
+            # circuit times
+            db_copy = copy.deepcopy(tornet_db)
+            db_copy["data"] = [circuit_time_list]
+            circuit_time_dbs.append(db_copy)
+
+
+            tornet_db['data'] = circuit_num
 
     dbs_to_plot = tornet_dbs
 
@@ -568,7 +603,9 @@ def __plot_client_circuits(args, tornet_dbs):
     __plot_timeseries_figure(args, total_circuit_dbs, "total_circuits",
         ytime=False, xtime=True,
         xlabel="Simulation Time",
-        ylabel="Total Circuits (thousand)")
+        ylabel="Total created Circuits (million)")
+
+    __plot_cdf_figure(args, circuit_time_dbs, "circuit_times", xlabel="Circuit times")
 
 def __plot_cdf_figure(args, dbs, filename, xscale=None, yscale=None, xlabel=None, ylabel="CDF"):
     color_cycle = cycle(DEFAULT_COLORS)
