@@ -4,7 +4,7 @@ import logging
 
 from itertools import cycle
 import matplotlib.pyplot as pyplot
-from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import FuncFormatter, MultipleLocator
 
 from tornettools.util import load_json_data, find_matching_files_in_dir
 
@@ -214,7 +214,7 @@ def __plot_entropy(args, tornet_collection_path, circuit_list, circuit_list_db):
             norm_entropy[int(time)] = [normalized_entropy]
         circuit_list_db[experiment_id]["data"].append(list(norm_entropy.values()))
         circuit_list[experiment_id]["data"] = norm_entropy
-    __plot_timeseries_figure(args, circuit_list, "Entropy", xtime=True, xlabel="Simulated Time", ylabel="Normalized Entropy")
+    __plot_timeseries_figure(args, circuit_list, "Entropy", xtime=True, xlabel="Simulated Time (Minutes)", ylabel="Normalized Entropy")
     __plot_cdf_figure(args, circuit_list_db, 'entropy_cdf', xlabel="Entropy")
 
 
@@ -343,7 +343,7 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
             dict_keys = list(dbs_to_plot.keys())
             for d in dict_keys:
                 print("e {} d {} t {}".format(bad_traffic_selection_name, d, bad_traffic_type))
-                __plot_timeseries_figure(args, dbs_to_plot[d], "{} attacker selection for {} ({})".format(bad_traffic_selection_name, bad_traffic_type, d), xtime=True, xlabel="Simulated Time", ylabel="Comprimised bytes ({} {} {})".format(bad_traffic_selection_name, d, bad_traffic_type))
+                __plot_timeseries_figure(args, dbs_to_plot[d], "{} attacker selection for {} ({})".format(bad_traffic_selection_name, bad_traffic_type, d), xtime=True, xlabel="Simulated Time (Minutes)", ylabel="Comprimised bytes ({} {} {})".format(bad_traffic_selection_name, d, bad_traffic_type))
                 del dbs_to_plot[d]
     print("Finished selecting bad nodes")
 
@@ -378,7 +378,7 @@ def __plot_node_memory_usage(args, tornet_dbs):
             dbs_to_plot[t].append(db_copy)
 
     for t in node_types:
-        __plot_timeseries_figure(args, dbs_to_plot[t], "ram_{}".format(t), xtime=True, xlabel="Simulated Time", ylabel="RAM Used (GiB) for {}".format(t))
+        __plot_timeseries_figure(args, dbs_to_plot[t], "ram_{}".format(t), xtime=True, xlabel="Simulated Time (Minutes)", ylabel="RAM Used (GiB) for {}".format(t))
 
 def __plot_node_cpu_usage(args, tornet_dbs):
     node_types = ["client", "guard", "exit", "middle", "4uthority"]
@@ -406,7 +406,7 @@ def __plot_node_cpu_usage(args, tornet_dbs):
             dbs_to_plot[t].append(db_copy)
 
     for t in node_types:
-        __plot_timeseries_figure(args, dbs_to_plot[t], "cpu_{}".format(t), xtime=True, xlabel="Simulated Time", ylabel="CPU Time (TODO) for {}".format(t))
+        __plot_timeseries_figure(args, dbs_to_plot[t], "cpu_{}".format(t), xtime=True, xlabel="Simulated Time (Minutes)", ylabel="CPU Time (TODO) for {}".format(t))
 
 def __plot_memory_usage(args, tornet_dbs):
     for tornet_db in tornet_dbs:
@@ -695,9 +695,9 @@ def __plot_timeseries_figure(args, dbs, filename, xtime=False, ytime=False, xlab
         pyplot.ylabel(ylabel)
 
     if xtime:
-        f.axes[0].xaxis.set_major_formatter(FuncFormatter(__time_format_func))
+        f.axes[0].xaxis.set_major_formatter(FuncFormatter(__time_format_func_minutes))
         # this locates y-ticks at the hours
-        #ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=3600))
+        f.axes[0].xaxis.set_major_locator(MultipleLocator(base=600))
         # rotate xlabels so they don't overlap
         pyplot.xticks(rotation=30)
     if ytime:
@@ -723,6 +723,10 @@ def __get_scale_suffix(scale):
         return " (log scale)"
     else:
         return ""
+
+def __time_format_func_minutes(x, pos):
+    return "{:d}".format(int(x/60))
+
 
 def __time_format_func(x, pos):
     hours = int(x//3600)
