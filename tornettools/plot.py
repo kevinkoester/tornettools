@@ -685,6 +685,9 @@ def __plot_timeseries_figure(args, dbs, filename, xtime=False, ytime=False, xlab
             label=db['label'],
             color=db['color'] or next(color_cycle),
             linestyle=next(linestyle_cycle))
+        # FIXME: another dirty hack
+        if len(dbs) == 2:
+            next(color_cycle)
 
         lines.append(line)
         labels.append(db['label'])
@@ -710,6 +713,35 @@ def __plot_finish(args, lines, labels, filename):
     pyplot.tick_params(axis='both', which='minor', labelsize=5)
     pyplot.grid(True, axis='both', which='minor', color='0.1', linestyle=':', linewidth='0.5')
     pyplot.grid(True, axis='both', which='major', color='0.1', linestyle=':', linewidth='1.0')
+
+    # FIXME: dirty hack
+    try:
+        index = labels.index("vanilla")
+        vanilla_objs = (lines.pop(index), labels.pop(index))
+
+        vanilla_l = 600
+        if len(labels) == 1:
+            num = int(labels[0].split("-")[1])
+            pos = 0
+            if num < vanilla_l:
+                pos = 1
+            lines.insert(pos, vanilla_objs[0])
+            labels.insert(pos, vanilla_objs[1])
+
+
+        else:
+            for i in range(1, len(labels)):
+                num_a = int(labels[i-1].split("-")[1])
+                num_b = int(labels[i].split("-")[1])
+
+                if num_a < vanilla_l and num_b > vanilla_l:
+                    lines.insert(i, vanilla_objs[0])
+                    labels.insert(i, vanilla_objs[1])
+                    break
+
+    except:
+        raise
+
 
     pyplot.legend(lines, labels, loc='best')
     pyplot.tight_layout(pad=0.3)
