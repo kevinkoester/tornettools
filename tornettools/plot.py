@@ -103,7 +103,7 @@ def __plot_tornet(args):
     circuit_bandwidth_db = __load_tornet_datasets(args, "circuit_bandwidth.json")
     stream_dict = __load_tornet_datasets(args, "stream_dict.json")
     logging.info("Plotting circuit num")
-    #__plot_client_circuits(args, tornet_dbs, circuit_bandwidth_db)
+    __plot_client_circuits(args, tornet_dbs, circuit_bandwidth_db, stream_dict)
     __plot_client_circuits_could_close(args, tornet_dbs, stream_dict)
 
     print_current_memory("Before loading circuit data")
@@ -622,21 +622,21 @@ def __plot_client_circuits_could_close(args, tornet_dbs, stream_dict):
     __plot_cdf_figure(args, tornet_dbs, "circuit_could_close_times", xlabel="Circuit could be closed since (seconds)")
 
 
-def __plot_client_circuits(args, tornet_dbs, bandwidth_db):
+def __plot_client_circuits(args, tornet_dbs, bandwidth_db, stream_circ_db):
     total_circuit_dbs = []
-    total_used_circuit_dbs = []
+    stream_circ_dbs = []
     circuit_time_dbs = []
     for experiment_id in range(0, len(tornet_dbs)):
         for dataset in tornet_dbs[experiment_id]["dataset"]:
             circuit_num = {}
             total_circuit_num_dict = {}
             total_circuit_num = 0
-            total_used_circuit_num_dict = {}
-            total_used_circuit_num = 0
             current_circuits = set()
             # for plotting circuit time cdf
             circuit_time_dict = {}
             circuit_time_list = []
+            # streams per circuit
+            stream_per_circ_list = []
             for time, circ_list in dataset["markovclient"].items():
                 for circ in circ_list:
                     if circ[0] == "-":
@@ -652,19 +652,25 @@ def __plot_client_circuits(args, tornet_dbs, bandwidth_db):
                             total_circuit_num += 1
                             current_circuits.add(circ)
                             circuit_time_dict[circ] = float(time)
-                            if ( circ not in bandwidth_db[experiment_id]["dataset"][0]["markovclient"] or len(bandwidth_db[experiment_id]["dataset"][0]["markovclient"][circ].keys()) == 0):
-                                total_used_circuit_num += 1
+                            # count streams for this circuit
+                            stream_set = set()
+                            if circ in stream_circ_db[experiment_id]["dataset"][0]["markovclient"]:
+                                for s_list in stream_circ_db[experiment_id]["dataset"][0]["markovclient"][circ]["CLOSED"].values():
+                                    for sid in s_list:
+                                        stream_set.add(sid)
+                            num_streams = len(stream_set)
+                            stream_per_circ_list.append(num_streams)
+                            
 
                 circuit_num[int(time)] = [len(current_circuits)/1000.0]
                 total_circuit_num_dict[int(time)] = [total_circuit_num / float(1e6)]
-                total_used_circuit_num_dict[int(time)] = [total_used_circuit_num]
 
             db_copy = copy.deepcopy(tornet_dbs[experiment_id])
             db_copy["data"] = total_circuit_num_dict
             total_circuit_dbs.append(db_copy)
             db_copy = copy.deepcopy(tornet_dbs[experiment_id])
-            db_copy["data"] = total_used_circuit_num_dict
-            total_used_circuit_dbs.append(db_copy)
+            db_copy["data"] = [stream_per_circ_list]
+            stream_circ_dbs.append(db_copy)
             # circuit times
             db_copy = copy.deepcopy(tornet_dbs[experiment_id])
             db_copy["data"] = [circuit_time_list]
@@ -685,11 +691,8 @@ def __plot_client_circuits(args, tornet_dbs, bandwidth_db):
         xlabel="Simulation Time",
         ylabel="Total created Circuits (million)")
 
-    __plot_timeseries_figure(args, total_used_circuit_dbs, "total_used_circuits",
-        ytime=False, xtime=True,
-        xlabel="Simulation Time",
-        ylabel="Total unused Circuits")
 
+    __plot_cdf_figure(args, stream_circ_dbs, "stream_per_circ", xlabel="Streams per circuit")
     __plot_cdf_figure(args, circuit_time_dbs, "circuit_times", xlabel="Circuit times")
 
 def __plot_cdf_figure(args, dbs, filename, xscale=None, yscale=None, xlabel=None, ylabel="CDF"):
