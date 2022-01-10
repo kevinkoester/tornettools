@@ -45,6 +45,8 @@ def extract_oniontrace_plot_data(args):
     __extract_circuit_build_times(args, data, startts, stopts)
     __extract_relay_tput(args, data, startts, stopts)
     __extract_client_cicuit_list(args.prefix, data)
+    __extract_client_stream_list(args.prefix, data)
+    __extract_client_stream_dict(args.prefix, data)
     __extract_circuit_dict(args.prefix, data)
     __extract_circuit_bandwidth(args.prefix, data)
 
@@ -62,6 +64,18 @@ def __extract_client_cicuit_list(prefix, data):
     circ_num = __get_client_circuit_list(data)
     outpath = f"{prefix}/tornet.plot.data/circuit_list.json"
     dump_json_data(circ_num, outpath, compress=False)
+    
+def __extract_client_stream_dict(prefix, data):
+    stream_stats = __get_client_stream_dict(data)
+    outpath = f"{prefix}/tornet.plot.data/stream_dict.json"
+    dump_json_data(stream_stats, outpath, compress=False)
+
+def __extract_client_stream_list(prefix, data):
+    circ_num = __get_client_stream_list(data)
+    outpath = f"{prefix}/tornet.plot.data/stream_list.json"
+    dump_json_data(circ_num, outpath, compress=False)
+
+
 
 def __extract_circuit_dict(prefix, data):
     circ_dict = __get_circuit_relay_dict(data)
@@ -114,6 +128,38 @@ def __get_client_circuit_list(data):
                         for circ_id in circuit_events["closed"][time]:
                             circuit_stats[t][int(time)-946684800].append("-{}_{}".format(node_name.replace(t, ""), circ_id))
     return circuit_stats
+
+def __get_client_stream_dict(data):
+    node_types = ["markovclient", "perfclient"]
+    stream_dict = {x : defaultdict(list) for x in node_types}
+    for node_name, node_data in data["data"].items():
+        circuit_stats = {x : defaultdict(list) for x in node_types}
+        for t in node_types:
+            if t in node_name:
+                #self.stream_circ_dict[cid][state][second].append(stream_id)
+                circuit_relay_dict = node_data["oniontrace"]["stream_circ_dict"]
+                for cid, state_list in circuit_relay_dict.items():
+                    stream_dict[t]["{}_{}".format(node_name.replace(t, ""), cid)] = state_list
+    return stream_dict
+
+
+def __get_client_stream_list(data):
+    node_types = ["markovclient", "perfclient"]
+    stream_stats = {x : defaultdict(list) for x in node_types}
+    for node_name, node_data in data["data"].items():
+        stream_events = node_data["oniontrace"]["stream_events"]
+        for t in node_types:
+            if t in node_name:
+                node_num = node_name.replace(t, "")
+                for time in sorted(list(stream_events["new"].keys()) + list(stream_events["closed"].keys())):
+                    if time in stream_events["new"]:
+                        for stream_id in stream_events["new"][time]:
+                            stream_stats[t][int(time)-946684800].append("{}_{}".format(node_num, stream_id))
+                    if time in stream_events["closed"]:
+                        for stream_id in stream_events["closed"][time]:
+                            stream_stats[t][int(time)-946684800].append("-{}_{}".format(node_num, stream_id))
+    return stream_stats
+
 
 def __get_perfclient_cbt(data, startts, stopts):
     perf_cbt = []

@@ -50,68 +50,75 @@ def __plot_tornet(args):
     args.pdfpages = PdfPages(f"{args.prefix}/tornet.plot.pages.pdf")
 
     logging.info("Loading tornet resource usage data")
-    tornet_dbs = __load_tornet_datasets(args, "resource_usage.json")
-    __plot_memory_usage(args, tornet_dbs)
-    __plot_run_time(args, tornet_dbs)
+    #tornet_dbs = __load_tornet_datasets(args, "resource_usage.json")
+    #__plot_memory_usage(args, tornet_dbs)
+    #__plot_run_time(args, tornet_dbs)
 
-    logging.info("Loading tornet resource usage data per node")
-    tornet_dbs = __load_tornet_datasets(args, "resource_usage_node.json")
-    __plot_node_memory_usage(args, tornet_dbs)
-    logging.info("Loading tornet cpu usage data per node")
-    tornet_dbs = __load_tornet_datasets(args, "cpu_node.json")
-    __plot_node_cpu_usage(args, tornet_dbs)
+    #logging.info("Loading tornet resource usage data per node")
+    #tornet_dbs = __load_tornet_datasets(args, "resource_usage_node.json")
+    #__plot_node_memory_usage(args, tornet_dbs)
+    #logging.info("Loading tornet cpu usage data per node")
+    #tornet_dbs = __load_tornet_datasets(args, "cpu_node.json")
+    #__plot_node_cpu_usage(args, tornet_dbs)
 
-    logging.info("Loading Tor metrics data")
-    torperf_dbs = __load_torperf_datasets(args.tor_metrics_path)
+    #logging.info("Loading Tor metrics data")
+    #torperf_dbs = __load_torperf_datasets(args.tor_metrics_path)
 
 
-    logging.info("Loading tornet relay goodput data")
-    tornet_dbs = __load_tornet_datasets(args, "relay_goodput.json")
-    net_scale = __get_simulated_network_scale(args)
-    logging.info("Plotting relay goodput")
-    __plot_relay_goodput(args, torperf_dbs, tornet_dbs, net_scale)
+    #logging.info("Loading tornet relay goodput data")
+    #tornet_dbs = __load_tornet_datasets(args, "relay_goodput.json")
+    #net_scale = __get_simulated_network_scale(args)
+    #logging.info("Plotting relay goodput")
+    #__plot_relay_goodput(args, torperf_dbs, tornet_dbs, net_scale)
 
-    logging.info("Loading tornet circuit build time data")
-    tornet_dbs = __load_tornet_datasets(args, "perfclient_circuit_build_time.json")
-    logging.info("Plotting circuit build times")
-    __plot_circuit_build_time(args, torperf_dbs, tornet_dbs)
+    #logging.info("Loading tornet circuit build time data")
+    #tornet_dbs = __load_tornet_datasets(args, "perfclient_circuit_build_time.json")
+    #logging.info("Plotting circuit build times")
+    #__plot_circuit_build_time(args, torperf_dbs, tornet_dbs)
 
-    logging.info("Loading tornet round trip time data")
-    tornet_dbs = __load_tornet_datasets(args, "round_trip_time.json")
-    logging.info("Plotting round trip times")
-    __plot_round_trip_time(args, torperf_dbs, tornet_dbs)
+    #logging.info("Loading tornet round trip time data")
+    #tornet_dbs = __load_tornet_datasets(args, "round_trip_time.json")
+    #logging.info("Plotting round trip times")
+    #__plot_round_trip_time(args, torperf_dbs, tornet_dbs)
 
-    logging.info("Loading tornet transfer time data")
-    tornet_dbs = __load_tornet_datasets(args, "time_to_last_byte_recv.json")
-    logging.info("Plotting transfer times")
-    __plot_transfer_time(args, torperf_dbs, tornet_dbs, "51200")
-    __plot_transfer_time(args, torperf_dbs, tornet_dbs, "1048576")
-    __plot_transfer_time(args, torperf_dbs, tornet_dbs, "5242880")
+    #logging.info("Loading tornet transfer time data")
+    #tornet_dbs = __load_tornet_datasets(args, "time_to_last_byte_recv.json")
+    #logging.info("Plotting transfer times")
+    #__plot_transfer_time(args, torperf_dbs, tornet_dbs, "51200")
+    #__plot_transfer_time(args, torperf_dbs, tornet_dbs, "1048576")
+    #__plot_transfer_time(args, torperf_dbs, tornet_dbs, "5242880")
 
-    logging.info("Loading tornet goodput data")
-    tornet_dbs = __load_tornet_datasets(args, "perfclient_goodput.json")
-    logging.info("Plotting client goodput")
-    __plot_client_goodput(args, torperf_dbs, tornet_dbs)
+    #logging.info("Loading tornet goodput data")
+    #tornet_dbs = __load_tornet_datasets(args, "perfclient_goodput.json")
+    #logging.info("Plotting client goodput")
+    #__plot_client_goodput(args, torperf_dbs, tornet_dbs)
 
-    logging.info("Loading tornet transfer error rate data")
-    tornet_dbs = __load_tornet_datasets(args, "error_rate.json")
-    logging.info("Plotting transfer error rates")
-    __plot_transfer_error_rates(args, torperf_dbs, tornet_dbs, "ALL")
+    #logging.info("Loading tornet transfer error rate data")
+    #tornet_dbs = __load_tornet_datasets(args, "error_rate.json")
+    #logging.info("Plotting transfer error rates")
+    #__plot_transfer_error_rates(args, torperf_dbs, tornet_dbs, "ALL")
 
     logging.info("Loading circuits info")
     tornet_dbs = __load_tornet_datasets(args, "circuit_list.json")
+    circuit_bandwidth_db = __load_tornet_datasets(args, "circuit_bandwidth.json")
+    stream_dict = __load_tornet_datasets(args, "stream_dict.json")
     logging.info("Plotting circuit num")
-    __plot_client_circuits(args, tornet_dbs)
+    #__plot_client_circuits(args, tornet_dbs, circuit_bandwidth_db)
+    __plot_client_circuits_could_close(args, tornet_dbs, stream_dict)
 
     print_current_memory("Before loading circuit data")
     #circuit_dict_db = __load_tornet_datasets(args, "circuit_dict.json")
-    circuit_bandwidth_db = __load_tornet_datasets(args, "circuit_bandwidth.json")
     logging.info("Simulating attacker")
     print_current_memory("After loading circuit data")
     # Disable for now as it takes a very long time and yields no results
     #__plot_attacker(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db, circuit_bandwidth_db)
     #__plot_entropy(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db)
     __plot_circuit_bandwidth(args, circuit_bandwidth_db)
+
+    tornet_dbs = __load_tornet_datasets(args, "stream_list.json")
+    stream_dict_dbs = __load_tornet_datasets(args, "stream_dict.json")
+    __plot_client_streams(args, tornet_dbs)
+
     args.pdfpages.close()
 
 def get_relay_capacities(shadow_config_path, bwup=False, bwdown=False):
@@ -551,15 +558,81 @@ def __plot_client_goodput(args, torperf_dbs, tornet_dbs):
         yscale="taillog",
         xlabel="Client Transfer Goodput (Mbit/s): 0.5 to 1 MiB")
 
+def __plot_client_streams(args, stream_dbs):
+    stream_time_dbs = []
+    for experiment_id in range(0, len(stream_dbs)):
+        for dataset in stream_dbs[experiment_id]["dataset"]:
+            current_streams = set()
+            # for plotting circuit time cdf
+            stream_time_list = []
+            stream_time_dict = {}
+            for time, stream_list in dataset["markovclient"].items():
+                for stream in stream_list:
+                    if stream[0] == "-":
+                        try:
+                            current_streams.remove(stream[1:])
+                            stream_lifetime = float(time) - stream_time_dict[stream[1:]]
+                            stream_time_list.append(stream_lifetime)
+                        except KeyError:
+                            # Removing circuit before starting our data capture
+                            pass
+                    else:
+                        if stream not in current_streams:
+                            current_streams.add(stream)
+                            stream_time_dict[stream] = float(time)
 
-def __plot_client_circuits(args, tornet_dbs):
+            # circuit times
+            stream_dbs[experiment_id]["data"] = [stream_time_list]
+            stream_time_dbs.append(stream_dbs[experiment_id])
+
+
+    __plot_cdf_figure(args, stream_dbs, "stream_times", xlabel="Stream times")
+
+def __plot_client_circuits_could_close(args, tornet_dbs, stream_dict):
+    for experiment_id in range(0, len(tornet_dbs)):
+        for dataset in tornet_dbs[experiment_id]["dataset"]:
+            circuit_time_dict = {}
+            circuit_time_list = []
+            cdf_data = []
+            current_circuits = set()
+            for time, circ_list in dataset["markovclient"].items():
+                for circ in circ_list:
+                    if circ[0] == "-":
+                        try:
+                            current_circuits.remove(circ[1:])
+                            circuit_lifetime = float(time) - circuit_time_dict[circ[1:]]
+                            if circ[1:] in stream_dict[experiment_id]["dataset"][0]["markovclient"]:
+                                last_bw_time = list(stream_dict[experiment_id]["dataset"][0]["markovclient"][circ[1:]]["CLOSED"].keys())[-1]
+                            #if circ[1:] in bandwidth_db[experiment_id]["dataset"][0]["markovclient"]:
+                            #    last_bw_time = list(bandwidth_db[experiment_id]["dataset"][0]["markovclient"][circ[1:]].keys())[-1]
+                            else:
+                                last_bw_time = 0
+                            cdf_data.append(float(time) - float(last_bw_time))
+
+                        except KeyError:
+                            # Removing circuit before starting our data capture
+                            pass
+                    else:
+                        if circ not in current_circuits:
+                            current_circuits.add(circ)
+                            circuit_time_dict[circ] = float(time)
+            #print(cdf_data)
+            tornet_dbs[experiment_id]["data"] = [cdf_data]
+
+    __plot_cdf_figure(args, tornet_dbs, "circuit_could_close_times", xlabel="Circuit could be closed since (seconds)")
+
+
+def __plot_client_circuits(args, tornet_dbs, bandwidth_db):
     total_circuit_dbs = []
+    total_used_circuit_dbs = []
     circuit_time_dbs = []
-    for tornet_db in tornet_dbs:
-        for dataset in tornet_db["dataset"]:
+    for experiment_id in range(0, len(tornet_dbs)):
+        for dataset in tornet_dbs[experiment_id]["dataset"]:
             circuit_num = {}
             total_circuit_num_dict = {}
             total_circuit_num = 0
+            total_used_circuit_num_dict = {}
+            total_used_circuit_num = 0
             current_circuits = set()
             # for plotting circuit time cdf
             circuit_time_dict = {}
@@ -569,7 +642,8 @@ def __plot_client_circuits(args, tornet_dbs):
                     if circ[0] == "-":
                         try:
                             current_circuits.remove(circ[1:])
-                            circuit_time_list.append(float(time) - circuit_time_dict[circ[1:]])
+                            circuit_lifetime = float(time) - circuit_time_dict[circ[1:]]
+                            circuit_time_list.append(circuit_lifetime)
                         except KeyError:
                             # Removing circuit before starting our data capture
                             pass
@@ -578,20 +652,26 @@ def __plot_client_circuits(args, tornet_dbs):
                             total_circuit_num += 1
                             current_circuits.add(circ)
                             circuit_time_dict[circ] = float(time)
+                            if ( circ not in bandwidth_db[experiment_id]["dataset"][0]["markovclient"] or len(bandwidth_db[experiment_id]["dataset"][0]["markovclient"][circ].keys()) == 0):
+                                total_used_circuit_num += 1
 
                 circuit_num[int(time)] = [len(current_circuits)/1000.0]
                 total_circuit_num_dict[int(time)] = [total_circuit_num / float(1e6)]
+                total_used_circuit_num_dict[int(time)] = [total_used_circuit_num]
 
-            db_copy = copy.deepcopy(tornet_db)
+            db_copy = copy.deepcopy(tornet_dbs[experiment_id])
             db_copy["data"] = total_circuit_num_dict
             total_circuit_dbs.append(db_copy)
+            db_copy = copy.deepcopy(tornet_dbs[experiment_id])
+            db_copy["data"] = total_used_circuit_num_dict
+            total_used_circuit_dbs.append(db_copy)
             # circuit times
-            db_copy = copy.deepcopy(tornet_db)
+            db_copy = copy.deepcopy(tornet_dbs[experiment_id])
             db_copy["data"] = [circuit_time_list]
             circuit_time_dbs.append(db_copy)
 
 
-            tornet_db['data'] = circuit_num
+            tornet_dbs[experiment_id]['data'] = circuit_num
 
     dbs_to_plot = tornet_dbs
 
@@ -604,6 +684,11 @@ def __plot_client_circuits(args, tornet_dbs):
         ytime=False, xtime=True,
         xlabel="Simulation Time",
         ylabel="Total created Circuits (million)")
+
+    __plot_timeseries_figure(args, total_used_circuit_dbs, "total_used_circuits",
+        ytime=False, xtime=True,
+        xlabel="Simulation Time",
+        ylabel="Total unused Circuits")
 
     __plot_cdf_figure(args, circuit_time_dbs, "circuit_times", xlabel="Circuit times")
 
@@ -717,22 +802,25 @@ def __plot_finish(args, lines, labels, filename):
     # FIXME: dirty hack
     try:
         index = labels.index("vanilla")
-        vanilla_objs = (lines.pop(index), labels.pop(index))
+        labels.pop(index)
+        vanilla_objs = (lines.pop(index), "600s (vanilla)")
+        # FIXME: rename hack
+        for i in range(0, len(labels)):
+            num = int(labels[i].split("-")[1])
+            labels[i] = "{}s".format(num)
 
         vanilla_l = 600
         if len(labels) == 1:
-            num = int(labels[0].split("-")[1])
+            num = int(labels[0][:-1])
             pos = 0
             if num < vanilla_l:
                 pos = 1
             lines.insert(pos, vanilla_objs[0])
             labels.insert(pos, vanilla_objs[1])
-
-
         else:
             for i in range(1, len(labels)):
-                num_a = int(labels[i-1].split("-")[1])
-                num_b = int(labels[i].split("-")[1])
+                num_a = int(labels[i-1][:-1])
+                num_b = int(labels[i][:-1])
 
                 if num_a < vanilla_l and num_b > vanilla_l:
                     lines.insert(i, vanilla_objs[0])
@@ -740,7 +828,7 @@ def __plot_finish(args, lines, labels, filename):
                     break
 
     except:
-        raise
+        pass
 
 
     pyplot.legend(lines, labels, loc='best')
