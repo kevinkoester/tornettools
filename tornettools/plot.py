@@ -21,6 +21,7 @@ import random
 from scipy.stats import entropy
 import numpy as np
 import math
+import json
 
 #for debug only
 from tornettools.debug import *
@@ -54,49 +55,49 @@ def __plot_tornet(args):
     #__plot_memory_usage(args, tornet_dbs)
     #__plot_run_time(args, tornet_dbs)
 
-    #logging.info("Loading tornet resource usage data per node")
-    #tornet_dbs = __load_tornet_datasets(args, "resource_usage_node.json")
-    #__plot_node_memory_usage(args, tornet_dbs)
-    #logging.info("Loading tornet cpu usage data per node")
-    #tornet_dbs = __load_tornet_datasets(args, "cpu_node.json")
-    #__plot_node_cpu_usage(args, tornet_dbs)
+    logging.info("Loading tornet resource usage data per node")
+    tornet_dbs = __load_tornet_datasets(args, "resource_usage_node.json")
+    __plot_node_memory_usage(args, tornet_dbs)
+    logging.info("Loading tornet cpu usage data per node")
+    tornet_dbs = __load_tornet_datasets(args, "cpu_node.json")
+    __plot_node_cpu_usage(args, tornet_dbs)
 
-    #logging.info("Loading Tor metrics data")
-    #torperf_dbs = __load_torperf_datasets(args.tor_metrics_path)
+    logging.info("Loading Tor metrics data")
+    torperf_dbs = __load_torperf_datasets(args.tor_metrics_path)
 
 
-    #logging.info("Loading tornet relay goodput data")
-    #tornet_dbs = __load_tornet_datasets(args, "relay_goodput.json")
-    #net_scale = __get_simulated_network_scale(args)
-    #logging.info("Plotting relay goodput")
-    #__plot_relay_goodput(args, torperf_dbs, tornet_dbs, net_scale)
+    logging.info("Loading tornet relay goodput data")
+    tornet_dbs = __load_tornet_datasets(args, "relay_goodput.json")
+    net_scale = __get_simulated_network_scale(args)
+    logging.info("Plotting relay goodput")
+    __plot_relay_goodput(args, torperf_dbs, tornet_dbs, net_scale)
 
-    #logging.info("Loading tornet circuit build time data")
-    #tornet_dbs = __load_tornet_datasets(args, "perfclient_circuit_build_time.json")
-    #logging.info("Plotting circuit build times")
-    #__plot_circuit_build_time(args, torperf_dbs, tornet_dbs)
+    logging.info("Loading tornet circuit build time data")
+    tornet_dbs = __load_tornet_datasets(args, "perfclient_circuit_build_time.json")
+    logging.info("Plotting circuit build times")
+    __plot_circuit_build_time(args, torperf_dbs, tornet_dbs)
 
-    #logging.info("Loading tornet round trip time data")
-    #tornet_dbs = __load_tornet_datasets(args, "round_trip_time.json")
-    #logging.info("Plotting round trip times")
-    #__plot_round_trip_time(args, torperf_dbs, tornet_dbs)
+    logging.info("Loading tornet round trip time data")
+    tornet_dbs = __load_tornet_datasets(args, "round_trip_time.json")
+    logging.info("Plotting round trip times")
+    __plot_round_trip_time(args, torperf_dbs, tornet_dbs)
 
-    #logging.info("Loading tornet transfer time data")
-    #tornet_dbs = __load_tornet_datasets(args, "time_to_last_byte_recv.json")
-    #logging.info("Plotting transfer times")
-    #__plot_transfer_time(args, torperf_dbs, tornet_dbs, "51200")
-    #__plot_transfer_time(args, torperf_dbs, tornet_dbs, "1048576")
-    #__plot_transfer_time(args, torperf_dbs, tornet_dbs, "5242880")
+    logging.info("Loading tornet transfer time data")
+    tornet_dbs = __load_tornet_datasets(args, "time_to_last_byte_recv.json")
+    logging.info("Plotting transfer times")
+    __plot_transfer_time(args, torperf_dbs, tornet_dbs, "51200")
+    __plot_transfer_time(args, torperf_dbs, tornet_dbs, "1048576")
+    __plot_transfer_time(args, torperf_dbs, tornet_dbs, "5242880")
 
-    #logging.info("Loading tornet goodput data")
-    #tornet_dbs = __load_tornet_datasets(args, "perfclient_goodput.json")
-    #logging.info("Plotting client goodput")
-    #__plot_client_goodput(args, torperf_dbs, tornet_dbs)
+    logging.info("Loading tornet goodput data")
+    tornet_dbs = __load_tornet_datasets(args, "perfclient_goodput.json")
+    logging.info("Plotting client goodput")
+    __plot_client_goodput(args, torperf_dbs, tornet_dbs)
 
-    #logging.info("Loading tornet transfer error rate data")
-    #tornet_dbs = __load_tornet_datasets(args, "error_rate.json")
-    #logging.info("Plotting transfer error rates")
-    #__plot_transfer_error_rates(args, torperf_dbs, tornet_dbs, "ALL")
+    logging.info("Loading tornet transfer error rate data")
+    tornet_dbs = __load_tornet_datasets(args, "error_rate.json")
+    logging.info("Plotting transfer error rates")
+    __plot_transfer_error_rates(args, torperf_dbs, tornet_dbs, "ALL")
 
     logging.info("Loading circuits info")
     tornet_dbs = __load_tornet_datasets(args, "circuit_list.json")
@@ -107,11 +108,11 @@ def __plot_tornet(args):
     __plot_client_circuits_could_close(args, tornet_dbs, stream_dict)
 
     print_current_memory("Before loading circuit data")
-    #circuit_dict_db = __load_tornet_datasets(args, "circuit_dict.json")
+    circuit_dict_db = __load_tornet_datasets(args, "circuit_dict.json")
     logging.info("Simulating attacker")
     print_current_memory("After loading circuit data")
     # Disable for now as it takes a very long time and yields no results
-    #__plot_attacker(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db, circuit_bandwidth_db)
+    __plot_attacker(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db, circuit_bandwidth_db)
     #__plot_entropy(args, args.tornet_collection_path, tornet_dbs, circuit_dict_db)
     __plot_circuit_bandwidth(args, circuit_bandwidth_db)
 
@@ -221,7 +222,7 @@ def __plot_entropy(args, tornet_collection_path, circuit_list, circuit_list_db):
             norm_entropy[int(time)] = [normalized_entropy]
         circuit_list_db[experiment_id]["data"].append(list(norm_entropy.values()))
         circuit_list[experiment_id]["data"] = norm_entropy
-    __plot_timeseries_figure(args, circuit_list, "Entropy", xtime=True, xlabel="Simulated Time (Minutes)", ylabel="Normalized Entropy")
+    __plot_timeseries_figure(args, circuit_list, "Entropy", xtime=True, xlabel="Simulated time (minutes)", ylabel="Normalized Entropy")
     __plot_cdf_figure(args, circuit_list_db, 'entropy_cdf', xlabel="Entropy")
 
 
@@ -346,16 +347,18 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                 db_copy = copy.deepcopy(circuit_bandwidth_db[experiment_id])
                 db_copy["data"] = avg_read
                 dbs_to_plot["read"].append(db_copy)
+                db_copy = copy.deepcopy(circuit_bandwidth_db[experiment_id])
+                db_copy["data"] = avg_bad_connections
+                dbs_to_plot["read"].append(db_copy)
 
             dict_keys = list(dbs_to_plot.keys())
             for d in dict_keys:
                 print("e {} d {} t {}".format(bad_traffic_selection_name, d, bad_traffic_type))
-                __plot_timeseries_figure(args, dbs_to_plot[d], "{} attacker selection for {} ({})".format(bad_traffic_selection_name, bad_traffic_type, d), xtime=True, xlabel="Simulated Time (Minutes)", ylabel="Comprimised bytes ({} {} {})".format(bad_traffic_selection_name, d, bad_traffic_type))
+                __plot_timeseries_figure(args, dbs_to_plot[d], "{} attacker selection for {} ({})".format(bad_traffic_selection_name, bad_traffic_type, d), xtime=True, xlabel="Simulated time (minutes)", ylabel="Comprimised bytes ({} {} {})".format(bad_traffic_selection_name, d, bad_traffic_type))
                 del dbs_to_plot[d]
     print("Finished selecting bad nodes")
 
 def __plot_node_memory_usage(args, tornet_dbs):
-    print("#################")
     node_types = ["client", "guard", "exit", "middle", "4uthority"]
     dbs_to_plot = {}
     for t in node_types:
@@ -385,7 +388,7 @@ def __plot_node_memory_usage(args, tornet_dbs):
             dbs_to_plot[t].append(db_copy)
 
     for t in node_types:
-        __plot_timeseries_figure(args, dbs_to_plot[t], "ram_{}".format(t), xtime=True, xlabel="Simulated Time (Minutes)", ylabel="RAM Used (GiB) for {}".format(t))
+        __plot_timeseries_figure(args, dbs_to_plot[t], "ram_{}".format(t), xtime=True, xlabel="Simulated time (minutes)", ylabel="Memory used (GiB)")
 
 def __plot_node_cpu_usage(args, tornet_dbs):
     node_types = ["client", "guard", "exit", "middle", "4uthority"]
@@ -413,7 +416,7 @@ def __plot_node_cpu_usage(args, tornet_dbs):
             dbs_to_plot[t].append(db_copy)
 
     for t in node_types:
-        __plot_timeseries_figure(args, dbs_to_plot[t], "cpu_{}".format(t), xtime=True, xlabel="Simulated Time (Minutes)", ylabel="CPU Time (TODO) for {}".format(t))
+        __plot_timeseries_figure(args, dbs_to_plot[t], "cpu_{}".format(t), xtime=True, xlabel="Simulated time (minutes)", ylabel="CPU Time (TODO) for {}".format(t))
 
 def __plot_memory_usage(args, tornet_dbs):
     for tornet_db in tornet_dbs:
@@ -663,7 +666,7 @@ def __plot_client_circuits(args, tornet_dbs, bandwidth_db, stream_circ_db):
                             
 
                 circuit_num[int(time)] = [len(current_circuits)/1000.0]
-                total_circuit_num_dict[int(time)] = [total_circuit_num / float(1e6)]
+                total_circuit_num_dict[int(time)] = [total_circuit_num / float(1e3)]
 
             db_copy = copy.deepcopy(tornet_dbs[experiment_id])
             db_copy["data"] = total_circuit_num_dict
@@ -683,13 +686,14 @@ def __plot_client_circuits(args, tornet_dbs, bandwidth_db, stream_circ_db):
 
     __plot_timeseries_figure(args, dbs_to_plot, "used_circuits",
         ytime=False, xtime=True,
-        xlabel="Simulation Time",
-        ylabel="Active Circuits (thousand)")
+        yoffset=(-0.1, 0.48),
+        xlabel="Simulated time (minutes)",
+        ylabel="Concurrently open circuits (thousand)")
 
     __plot_timeseries_figure(args, total_circuit_dbs, "total_circuits",
         ytime=False, xtime=True,
-        xlabel="Simulation Time",
-        ylabel="Total created Circuits (million)")
+        xlabel="Simulated time (minutes)",
+        ylabel="Total created circuits (thousand)")
 
 
     __plot_cdf_figure(args, stream_circ_dbs, "stream_per_circ", xlabel="Streams per circuit")
@@ -701,6 +705,7 @@ def __plot_cdf_figure(args, dbs, filename, xscale=None, yscale=None, xlabel=None
 
     f = pyplot.figure()
     lines, labels = [], []
+    raw_output = {}
 
     for db in dbs:
         if 'data' not in db or len(db['data']) < 1:
@@ -720,6 +725,7 @@ def __plot_cdf_figure(args, dbs, filename, xscale=None, yscale=None, xlabel=None
 
         lines.append(line)
         labels.append(db['label'])
+        raw_output[db['label']] = d
 
     if xscale is not None:
         pyplot.xscale(xscale)
@@ -749,13 +755,16 @@ def __plot_cdf_figure(args, dbs, filename, xscale=None, yscale=None, xlabel=None
         pyplot.xlim(xmin=-m*x_visible_max, xmax=(m+1)*x_visible_max)
 
     __plot_finish(args, lines, labels, filename)
+    with open("{}/{}_raw.json".format(args.prefix, filename), "w") as raw_file:
+        json.dump(raw_output, raw_file)
 
-def __plot_timeseries_figure(args, dbs, filename, xtime=False, ytime=False, xlabel=None, ylabel=None):
+def __plot_timeseries_figure(args, dbs, filename, xtime=False, ytime=False, xlabel=None, ylabel=None, yoffset = None):
     color_cycle = cycle(DEFAULT_COLORS)
     linestyle_cycle = cycle(DEFAULT_LINESTYLES)
 
     f = pyplot.figure()
     lines, labels = [], []
+    raw_output = {}
 
     for db in dbs:
         if 'data' not in db or len(db['data']) < 1:
@@ -780,6 +789,8 @@ def __plot_timeseries_figure(args, dbs, filename, xtime=False, ytime=False, xlab
         lines.append(line)
         labels.append(db['label'])
 
+        raw_output[db['label']] = [x, y_buckets]
+
     if xlabel != None:
         pyplot.xlabel(xlabel)
     if ylabel != None:
@@ -793,8 +804,12 @@ def __plot_timeseries_figure(args, dbs, filename, xtime=False, ytime=False, xlab
         pyplot.xticks(rotation=30)
     if ytime:
         f.axes[0].yaxis.set_major_formatter(FuncFormatter(__time_format_func))
+    if yoffset:
+        f.axes[0].yaxis.set_label_coords(yoffset[0], yoffset[1])
 
     __plot_finish(args, lines, labels, filename)
+    with open("{}/{}_raw.json".format(args.prefix, filename), "w") as raw_file:
+        json.dump(raw_output, raw_file)
 
 def __plot_finish(args, lines, labels, filename):
     pyplot.tick_params(axis='both', which='major', labelsize=8)
