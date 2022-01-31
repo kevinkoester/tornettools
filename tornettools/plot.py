@@ -722,6 +722,9 @@ def __plot_cdf_figure(args, dbs, filename, xscale=None, yscale=None, xlabel=None
             label=db['label'],
             color=db['color'] or next(color_cycle),
             linestyle=next(linestyle_cycle))
+        # FIXME: another dirty hack
+        if len(dbs) == 2:
+            next(color_cycle)
 
         lines.append(line)
         labels.append(db['label'])
