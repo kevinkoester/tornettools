@@ -274,7 +274,7 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
         for bad_name in bad_guards_dict.keys():
             for i in bad_guards_dict[bad_name].keys():
                 for t in bad_types:
-                    bad_stats[experiment_id][t][bad_name][i] = [0,defaultdict(int),defaultdict(int), defaultdict(int)]
+                    bad_stats[experiment_id][t][bad_name][i] = [[],defaultdict(int),defaultdict(int), defaultdict(int)]
                 current_bad_list = bad_guards_dict[bad_name][i]
 
                 print_current_memory("Before iterating through nodes")
@@ -299,11 +299,11 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                                     bad_traffic_types.append("exit")
                                 if len(bad_traffic_types) == 2:
                                     bad_traffic_types.append("circuit")
+                                bad_stats[experiment_id][bad_traffic_type][bad_name][i][0].append(circuit_id)
                                 for t, types in circuit_bandwidth_db[0]["dataset"][0]["markovclient"][circuit_id].items():
                                     read_bytes = types["DELIVERED_READ"]
                                     written_bytes = types["DELIVERED_WRITTEN"]
                                     for bad_traffic_type in bad_traffic_types:
-                                        bad_stats[experiment_id][bad_traffic_type][bad_name][i][0] +=1
                                         bad_stats[experiment_id][bad_traffic_type][bad_name][i][1][t] += written_bytes
                                         bad_stats[experiment_id][bad_traffic_type][bad_name][i][2][t] += read_bytes
                             except:
@@ -324,14 +324,26 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                 written = []
                 read = []
                 bad_connections = []
+                avg_bad_circuits = defaultdict(list)
                 avg_written = defaultdict(list)
                 avg_read = defaultdict(list)
                 avg_bad_connections = defaultdict(list)
                 for e, val in bad_stats[experiment_id][bad_traffic_type][bad_traffic_selection_name].items():
-                    counts.append(val[0])
-                    written.append(sum(map(int, val[1].values())))
-                    read.append(sum(map(int, val[2].values())))
+                    print(f"Bad data: {val}")
+                    #counts.append(val[0])
+                    #written.append(sum(map(int, val[1].values())))
+                    #read.append(sum(map(int, val[2].values())))
+                    # Not connections but circuits
                     bad_connections.append(sum(val[3].values()))
+                    # val[0] contains list of bad circuits
+                    # iterate through all open circuits and append number of bad circuits for a given time
+                    used_bad_circs = set()
+                    for t, circ_list in circuit_list_db[experiment_id]["dataset"][0]["markovclient"].items():
+                        for circ in circ_list:
+                            if circ in circ_list:
+                                used_bad_circs.add(circ)
+                                avg_bad_circuits[int(t)] = [len(used_bad_circs)]
+
                     for t, throughput in val[1].items():
                         avg_written[int(t)] = [sum([throughput] + avg_written[int(t)])]
                     for t, throughput in val[2].items():
@@ -339,6 +351,7 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                     for t, bad in val[3].items():
                         avg_bad_connections[int(t)] = [sum([bad] + avg_bad_connections[int(t)])]
 
+                # TODO: avg contains total
                 db_copy = copy.deepcopy(circuit_bandwidth_db[experiment_id])
                 db_copy["data"] = avg_written
                 #print("Added written with len {}. Len of bad_stats {}".format(len(avg_written.keys()), bad_stats[experiment_id][bad_traffic_type][bad_traffic_selection_name].keys()))
@@ -348,7 +361,7 @@ def __plot_attacker(args, tornet_collection_path, circuit_list_db, circuit_dict_
                 db_copy["data"] = avg_read
                 dbs_to_plot["read"].append(db_copy)
                 db_copy = copy.deepcopy(circuit_bandwidth_db[experiment_id])
-                db_copy["data"] = avg_bad_connections
+                db_copy["data"] = avg_bad_circuits
                 dbs_to_plot["read"].append(db_copy)
 
             dict_keys = list(dbs_to_plot.keys())
