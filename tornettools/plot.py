@@ -860,6 +860,14 @@ def __plot_finish(args, lines, labels, filename):
                     lines.insert(i, vanilla_objs[0])
                     labels.insert(i, vanilla_objs[1])
                     break
+        for i in range(0, len(labels)):
+            parts = labels[i].split("s")
+            num = int(parts[0])
+            print(parts)
+            if num > 59:
+                labels[i] = "{} min{}".format(int(num/60), "".join(parts[1:]))
+            else:
+                labels[i] = "{} sec{}".format(num, "".join(parts[1:]))
 
     except:
         pass
